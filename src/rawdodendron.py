@@ -2,7 +2,7 @@
 # coding: utf-8
 
 import argparse
-import audioread
+from pydub import AudioSegment
 import sys
 from PIL import Image
 
@@ -51,10 +51,10 @@ if args.input != None or args.output != None:
 
     try:
 
-        f = audioread.audio_open(args.input.name)
+        f = AudioSegment.from_file(args.input.name)
 
         if args.verbose:
-            print("Audio properties: ", "channels:", f.channels, ", samplerate:", f.samplerate, ", duration:", f.duration)
+            print("Audio properties: ", "channels:", f.channels, ", sample_width:", f.sample_width, ", frame_rate", f.frame_rate, ", duration:", f.duration_seconds, "s")
 
         try:        
             save_as_image(f, args)
@@ -63,7 +63,6 @@ if args.input != None or args.output != None:
             print("")
             exit(2)
 
-        f.close()
     except: 
 
         try:

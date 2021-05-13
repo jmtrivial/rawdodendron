@@ -4,11 +4,11 @@ An audio/image converter using a raw approach
 
 ## Dependancies
 
-* audioread
+* pydub
 * pillow
 
 ### On debian
 
 ```
-sudo apt install python3-audioread python3-pil
+sudo apt install python3-pydub python3-pil
 ```
