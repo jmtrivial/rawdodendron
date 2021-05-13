@@ -7,10 +7,11 @@ An audio/image converter using a raw approach
 
 ## Dependancies
 
-* pydub
-* pillow
+* [pydub](http://pydub.com/)
+* [pillow](https://pillow.readthedocs.io/en/stable/)
+* [argparse](https://docs.python.org/3/library/argparse.html)
 
-### On debian
+### Install dependancies on a debian system
 
 ```
 sudo apt install python3-pydub python3-pil
