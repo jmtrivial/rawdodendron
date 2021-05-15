@@ -36,7 +36,7 @@ sudo apt install python3-pydub python3-pil python3-appdirs
 
 ### Command line
 
-Without spectific option, the script is using history to adjust the properties of the output. For example, in the following sequence, the first run produces a stereo 44.1 kHz audio file (default format), and store in the history the specific properties of the image (width, height, RGB/RGBA). The second run uses the history to identify the correct image parameters, using the properties of the audio file (number of samples, number of channels and sample rate)  as a filtering to identify the possible configuration of the audio file ancestor.
+Without spectific option, the script is using history to adjust the properties of the output. For example, in the following sequence, the first run produces a stereo 44.1 kHz audio file (default format), and store in the history the specific properties of the input image (width, height, RGB/RGBA). The second run uses the history to identify the correct image parameters, using the properties of the audio file (number of samples, number of channels and sample rate)  as a filtering to identify the possible configuration of the audio file ancestor.
 
 * ```rawdodendron.py -i image.png -o audio.wav``` to convert an image to an audio file
 * ```rawdodendron.py -i audio.wav -o image.png``` to convert an audio file to an image
