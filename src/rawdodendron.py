@@ -227,9 +227,12 @@ def get_image_size(data, args):
 
 def save_as_image(au, args):
 
-    data = au.raw_data
+    # convert to 8-bits
+    au = au.set_sample_width(1)
 
     consolidate_parameters_from_audio(args, au)
+
+    data = au.raw_data
 
     if args.verbose:
         print("")
@@ -281,6 +284,7 @@ parser = argparse.ArgumentParser(description="Audio/image converter using a raw 
 group_command_line = parser.add_argument_group("Non interactive mode", "Use command line parameters to run conversion without graphical interface")
 group_command_line.add_argument("-i", "--input", help="Input file", type=argparse.FileType('r'))
 group_command_line.add_argument("-o", "--output", help="Requested longitude", type=argparse.FileType('w'))
+group_command_line.add_argument("--ignore-history", help="Ignore history and avoid parameter guessing", action="store_true")
 
 group_conversion = group_command_line.add_mutually_exclusive_group(required=False)
 group_conversion.add_argument("--conversion-basic", help="Use a basic 8-bits conversion", action="store_true")
