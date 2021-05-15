@@ -10,6 +10,9 @@ Using this tool before and after using a [Digital Audio Workstation](https://en.
 Using this tool before and after using a [Raster Graphic Editor](https://en.wikipedia.org/wiki/Raster_graphics_editor) (such as gimp), it gives a way and to apply image filters on audio files.
 
 
+*This tool is inspired by Cécile Georges' artistic practices, and aims to extend the possibilities offered by digital bending.*
+
+
 ## Dependancies
 
 * [pydub](http://pydub.com/)
