@@ -30,7 +30,7 @@ def load_history():
         data = json.load(json_file)
         return data
     except:
-        return None
+        return {}
 
 def store_history(history):
     with open(history_file, 'w') as outfile:
