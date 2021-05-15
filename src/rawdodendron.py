@@ -46,11 +46,17 @@ def has_image_mode_parameter(args):
 def has_audio_channel_parameter(args):
     return args.mono or args.stereo
 
-def get_params_from_history(size, from_image):
+def description_matches(full, subpart):
+    for key in subpart:
+        if subpart[key] != full[key]:
+            return False
+    return True
+
+def get_params_from_history(size, desc, from_image):
     history = load_history()
     str_size = str(size)
     if str_size in history:
-        possible = [h for h in history[str_size] if h["from_image"] != from_image]
+        possible = [h for h in history[str_size] if h["from_image"] != from_image and description_matches(h, desc)]
         if len(possible) == 0:
             return None
         # get the most recent
@@ -95,7 +101,7 @@ def  consolidate_extra_bytes_method(args, data):
 
 def consolidate_parameters_from_image(args, im):
     # consolidate args
-    data = get_params_from_history(len(im.tobytes()), True)
+    data = get_params_from_history(len(im.tobytes()), image_description(im), True)
     if data != None and not args.ignore_history:
         # try to consolidate using history
         if args.bitrate == None and "a_bitrate" in data:
@@ -115,7 +121,7 @@ def consolidate_parameters_from_image(args, im):
 
 def consolidate_parameters_from_audio(args, au):
     # consolidate args
-    data = get_params_from_history(len(au.raw_data), False)
+    data = get_params_from_history(len(au.raw_data), audio_description(au), False)
     if data != None and not args.ignore_history:
         # try to consolidate using history
         if not has_image_size_parameter(args) and "i_width" in data:
