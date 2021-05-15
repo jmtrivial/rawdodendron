@@ -43,9 +43,13 @@ All the command line parameters are visibles using the following command:
 
 ### Service menu on KDE
 
-Right clic on an image file or on an audio file and find the *rawdodendron* entry to convert this file.
+Right clic on an image file and find the *rawdodendron* entry to convert it to an audio file.
 
-![service menu](./images/service-menu.png)
+![service menu (image to audio)](./images/service-menu.png)
+
+Right clic on an audio file and find the *rawdodendron* entry to convert it to an image file.
+
+![service menu (audio to image)](./images/service-menu2.png)
 
 ## Examples
 
