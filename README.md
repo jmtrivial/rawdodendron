@@ -10,10 +10,11 @@ An audio/image converter using a raw approach
 * [pydub](http://pydub.com/)
 * [pillow](https://pillow.readthedocs.io/en/stable/)
 * [argparse](https://docs.python.org/3/library/argparse.html)
+* [appdirs](https://pypi.org/project/appdirs/)
 
 ### Install dependancies on a debian system
 
 ```
-sudo apt install python3-pydub python3-pil
+sudo apt install python3-pydub python3-pil python3-appdirs
 ```
 
