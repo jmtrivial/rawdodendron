@@ -133,17 +133,24 @@ def consolidate_parameters_from_audio(args, au):
 
     consolidate_extra_bytes_method(args, data)
 
+def image_description(im):
+    return {"i_width": im.width, "i_mode": im.mode, "i_size": len(im.tobytes())}
+
+def audio_description(au):
+    return {"a_bitrate": au.frame_rate, "a_channels": au.channels, "a_size": len(au.raw_data)}
 
 def store_parameters(au, im, from_image):
     # store configuration
-    new_data = {"a_bitrate": au.frame_rate, "a_channels": au.channels, "a_size": len(au.raw_data), "from_image": from_image,
-                "i_width": im.width, "i_mode": im.mode, "i_size": len(im.tobytes())}
+    new_data = {"from_image": from_image}
+    new_data.update(image_description(im))
+    new_data.update(audio_description(au))
     store_params_to_history(new_data)
 
 def save_as_audio(im, args):
-    data = im.tobytes()
 
     consolidate_parameters_from_image(args, im)
+
+    data = im.tobytes()
 
     channels =  1 if args.mono else 2
 
