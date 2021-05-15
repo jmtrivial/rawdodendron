@@ -12,8 +12,8 @@ Icon=image
 
 
 [Desktop Action imageToAudio]
-TryExec=~/bin/rawdodendron.py
-Exec=for file in %F; do output="${file%.*}.flac"; i=1; while [ -e "$output" ]; do output="${file%.*} ($i).flac"; i=$((i+1)); done; ~/bin/rawdodendron.py -i "$file" -o "$output"; done
+TryExec=/usr/local/bin/rawdodendron.py
+Exec=for file in %F; do output="${file%.*}.flac"; i=1; while [ -e "$output" ]; do output="${file%.*} ($i).flac"; i=$((i+1)); done; /usr/local/bin/rawdodendron.py -i "$file" -o "$output"; done
 Name=Convert image to audio (raw approach)
 Name[fr]=Convertir un fichier image en fichier audio (approche brute)
 Icon=audio

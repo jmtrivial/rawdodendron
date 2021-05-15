@@ -18,6 +18,11 @@ An audio/image converter using a raw approach
 sudo apt install python3-pydub python3-pil python3-appdirs
 ```
 
+## Installation
+
+- Download this repository
+- run ```./install.sh```
+
 ## Examples
 
 Some images generated from an RGBA png version of the initial *rhododendron* image, using the following process:
