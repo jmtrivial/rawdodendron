@@ -1,0 +1,19 @@
+[Desktop Entry]
+Type=Service
+Actions=imageToAudio
+Encoding=UTF-8
+ServiceTypes=KonqPopupMenu/Plugin
+MimeType=image/*
+X-KDE-Priority=TopLevel
+X-KDE-StartupNotify=false
+X-KDE-Submenu=Rawdodendron (img)
+X-KDE-Submenu[fr]=Rawdodendron (img)
+Icon=image
+
+
+[Desktop Action imageToAudio]
+TryExec=~/bin/rawdodendron.py
+Exec=for file in %F; do output="${file%.*}.mp3"; i=1; while [ -e "$output" ]; do output="${file%.*} ($i).mp3"; i=$((i+1)); done; ~/bin/rawdodendron.py -i "$file" -o "$output"; done
+Name=Convert image to audio (raw approach)
+Name[fr]=Convertir un fichier image en fichier audio (approche brute)
+Icon=audio
