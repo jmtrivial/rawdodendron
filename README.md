@@ -18,3 +18,5 @@ An audio/image converter using a raw approach
 sudo apt install python3-pydub python3-pil python3-appdirs
 ```
 
+## Installation
+
