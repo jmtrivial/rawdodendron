@@ -86,7 +86,7 @@ def has_extra_bytes_method(args):
 
 def  consolidate_extra_bytes_method(args, data):
     if not has_extra_bytes_method(args):
-        if data == None:
+        if data == None or args.ignore_history:
             args.add_extra_bytes = True
         else:
             args.truncate = (data["from_image"] and data["i_size"] >= data["a_size"]) or ((not data["from_image"]) and data["i_size"] <= data["a_size"])
@@ -96,8 +96,7 @@ def  consolidate_extra_bytes_method(args, data):
 def consolidate_parameters_from_image(args, im):
     # consolidate args
     data = get_params_from_history(len(im.tobytes()), True)
-    print("consolidate data from image", data)
-    if data != None:
+    if data != None and not args.ignore_history:
         # try to consolidate using history
         if args.bitrate == None and "a_bitrate" in data:
             args.bitrate = data["a_bitrate"]
@@ -117,7 +116,7 @@ def consolidate_parameters_from_image(args, im):
 def consolidate_parameters_from_audio(args, au):
     # consolidate args
     data = get_params_from_history(len(au.raw_data), False)
-    if data != None:
+    if data != None and not args.ignore_history:
         # try to consolidate using history
         if not has_image_size_parameter(args) and "i_width" in data:
             args.width = data["i_width"]
