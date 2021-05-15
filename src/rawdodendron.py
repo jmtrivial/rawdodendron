@@ -54,6 +54,7 @@ def get_params_from_history(size, from_image):
         if len(possible) == 0:
             return None
         # get the most recent
+        print("Found a probable output configuration from history")
         sorted_possible = sorted(possible, key=lambda k: k["timestamp"], reverse=True) 
         return sorted_possible[0]
     else:
@@ -113,9 +114,9 @@ def consolidate_parameters_from_image(args, im):
     consolidate_extra_bytes_method(args, data)
 
 
-def consolidate_parameters_from_audio(args, f):
+def consolidate_parameters_from_audio(args, au):
     # consolidate args
-    data = get_params_from_history(len(f.raw_data), False)
+    data = get_params_from_history(len(au.raw_data), False)
     if data != None:
         # try to consolidate using history
         if not has_image_size_parameter(args) and "i_width" in data:
@@ -134,9 +135,9 @@ def consolidate_parameters_from_audio(args, f):
     consolidate_extra_bytes_method(args, data)
 
 
-def store_parameters(f, im, from_image):
+def store_parameters(au, im, from_image):
     # store configuration
-    new_data = {"a_bitrate": f.frame_rate, "a_channels": f.channels, "a_size": len(f.raw_data), "from_image": from_image,
+    new_data = {"a_bitrate": au.frame_rate, "a_channels": au.channels, "a_size": len(au.raw_data), "from_image": from_image,
                 "i_width": im.width, "i_mode": im.mode, "i_size": len(im.tobytes())}
     store_params_to_history(new_data)
 
@@ -170,7 +171,7 @@ def save_as_audio(im, args):
             data = data + b"\x00"
 
 
-    sound = AudioSegment(
+    au = AudioSegment(
         # raw audio data (bytes)
         data = data,
 
@@ -193,8 +194,8 @@ def save_as_audio(im, args):
     if format == "wave":
         format = "wav"
 
-    file_handle = sound.export(args.output.name, format=format)
-    store_parameters(sound, im, True)
+    file_handle = au.export(args.output.name, format=format)
+    store_parameters(au, im, True)
 
 
 def get_image_size(data, args):
@@ -224,11 +225,11 @@ def get_image_size(data, args):
     return width, height, missing
 
 
-def save_as_image(f, args):
+def save_as_image(au, args):
 
-    data = f.raw_data
+    data = au.raw_data
 
-    consolidate_parameters_from_audio(args, f)
+    consolidate_parameters_from_audio(args, au)
 
     if args.verbose:
         print("")
@@ -264,14 +265,14 @@ def save_as_image(f, args):
 
     try:
         im.save(args.output.name)
-        store_parameters(f, im, False)
+        store_parameters(au, im, False)
     except Exception:
         if mode == "RGBA":
             if args.verbose:
                 print("Force RGB mode")
             im = im.convert("RGB")
             im.save(args.output.name)
-            store_parameters(f, im, False)
+            store_parameters(au, im, False)
 
 
 
@@ -320,13 +321,13 @@ if args.input != None and args.output != None:
 
     try:
 
-        f = AudioSegment.from_file(args.input.name)
+        au = AudioSegment.from_file(args.input.name)
 
         if args.verbose:
-            print("Audio properties: ", "channels:", f.channels, ", sample_width:", f.sample_width, ", frame_rate", f.frame_rate, ", duration:", f.duration_seconds, "s")
+            print("Audio properties: ", "channels:", au.channels, ", sample_width:", au.sample_width, ", frame_rate", au.frame_rate, ", duration:", au.duration_seconds, "s")
 
         try:        
-            save_as_image(f, args)
+            save_as_image(au, args)
         except Exception as e:
             print("")
             print("Error while writing image file", e)
