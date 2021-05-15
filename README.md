@@ -26,10 +26,10 @@ Some images generated from an RGBA png version of the initial *rhododendron* ima
 * apply an audio processing algorithm (compression, reverb)
 * convert back to an image
 
-<img src="./samples/demo/rhododendron-compression.png" width="200px" height="200px" alt="Rhododendron">
+<img src="./samples/demo/rhododendron-compression.png" width="200px" height="200px" alt="Rhododendron (with compression)">
 
-<img src="./samples/demo/rhododendron-reverb.png" width="200px" height="200px" alt="Rhododendron">
+<img src="./samples/demo/rhododendron-reverb.png" width="200px" height="200px" alt="Rhododendron (with reverb)">
 
 The last image is the result of a reverb, but from an RGB image (without alpha channel):
 
-<img src="./samples/demo/rhododendron-reverb.jpg" width="200px" height="200px" alt="Rhododendron">
+<img src="./samples/demo/rhododendron-reverb.jpg" width="200px" height="200px" alt="Rhododendron (with reverb)">
