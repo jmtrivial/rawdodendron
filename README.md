@@ -5,7 +5,7 @@
 
 An audio/image converter using a raw approach. A byte-to-byte conversion is provided between image file and audio files (in both directions), in order to misuse image and sound processing algorithms.
 
-Using this tool before and after using a [Digital Audio Workstation](https://en.wikipedia.org/wiki/Digital_audio_workstation) (such as audacity, ardour or reaper) gives a way and to apply audio filters on images.
+Using this tool before and after using a [Digital Audio Workstation](https://en.wikipedia.org/wiki/Digital_audio_workstation) (such as audacity, ardour or reaper) gives a way to apply audio filters on images.
 
 Using this tool before and after using a [Raster Graphic Editor](https://en.wikipedia.org/wiki/Raster_graphics_editor) (such as gimp) gives a way and to apply image filters on audio files.
 
