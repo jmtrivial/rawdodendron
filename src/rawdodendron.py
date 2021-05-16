@@ -12,6 +12,10 @@ from appdirs import *
 import pathlib
 import json
 import time
+from PyQt5.QtCore import *
+from PyQt5.QtGui import *
+from PyQt5.QtWidgets import *
+from copy import copy
 
 
 class Parameters:
@@ -161,7 +165,9 @@ class History:
 
     def consolidate_parameters_from_image(self, args, im):
         # consolidate args
+
         data = self.get_params_from_history(len(im.tobytes()), self.image_description(im), True)
+
         if data != None and not args.ignore_history:
             # try to consolidate using history
             if args.bitrate == None and "a_bitrate" in data:
@@ -214,67 +220,77 @@ class History:
 
 
 class Rawdodendron:
+
     # main class that convert an image to an audio file, or an audio file to an image
+    def load_input_file(filename, verbose):
+        try:
+            # try to load the input as an audio file
+            au = AudioSegment.from_file(filename)
+
+            if verbose:
+                print("Audio properties: ", "channels:", au.channels, ", sample_width:", au.sample_width, ", frame_rate", au.frame_rate, ", duration:", au.duration_seconds, "s")
+
+            return au
+        except: 
+            # if the file is not an audio file, try to load it as an image
+            im = Image.open(filename)
+            if verbose:
+                print("Image size:", str(im.width) + "px",  "*", str(im.height) + "px", ", mode:", im.mode)
+
+            return im
+
 
     def convert(args):
         print("Input file: ", args.input.name)
         print("Output file: ", args.output.name)
 
         try:
-            # try to load the input as an audio file
-            au = AudioSegment.from_file(args.input.name)
+            input_file = Rawdodendron.load_input_file(args.input.name, args.verbose)
+        except TypeError as err:
+            print("\nError while reading image:", err, "\n")
+            parser.print_help()
+            
+            if verbose:
+                print("\nError: ", sys.exc_info()[0])
+            
+            exit(1)
+        except Exception as err:
+            print("\nError: unknown input format", err, "\n")
+            parser.print_help()
+            
+            if verbose:
+                print("\nError: ", sys.exc_info()[0])            
+            exit(1)
 
-            if args.verbose:
-                print("Audio properties: ", "channels:", au.channels, ", sample_width:", au.sample_width, ", frame_rate", au.frame_rate, ", duration:", au.duration_seconds, "s")
+        if input_file == None:
+            exit(2)
+        elif isinstance(input_file, Image.Image):
+            try:
+                # try to convert the image file as an audio file
+                Rawdodendron.save_as_audio(input_file, args)
+            except Exception as e:
+                print("\nError while writing audio file:", e, "\n")
+                exit(2)
+            except:
+                print("\nError while writing audio file, unknown error\n")
+                exit(2)
+            input_file.close()
 
+        elif isinstance(input_file, AudioSegment):
             try:
                 # try to convert the audio file as an image
-                Rawdodendron.save_as_image(au, args)
+                Rawdodendron.save_as_image(input_file, args)
+                
             except Exception as e:
                 print("\nError while writing image file", e, "\n")
                 exit(2)
             except:
                 print("\nError while writing image file, unknown error\n")
                 exit(2)
-        except: 
-            try:
-                # if the file is not an audio file, try to load it as an image
-                im = Image.open(args.input.name)
 
-                if args.verbose:
-                    print("Image size:", str(im.width) + "px",  "*", str(im.height) + "px", ", mode:", im.mode)
-
-                try:
-                    # try to convert the image file as an audio file
-                    Rawdodendron.save_as_audio(im, args)
-                except Exception as e:
-                    print("\nError while writing audio file:", e, "\n")
-                    exit(2)
-                except:
-                    print("\nError while writing audio file, unknown error\n")
-                    exit(2)
-                    im.close()
-
-            except TypeError as err:
-
-                print("\nError while reading image:", err, "\n")
-                
-                parser.print_help()
-                
-                if args.verbose:
-                    print("\nError: ", sys.exc_info()[0])
-                
-                exit(1)
-            except Exception as err:
-                
-                print("\nError: unknown input format", err, "\n")
-                
-                parser.print_help()
-                
-                if args.verbose:
-                    print("\nError: ", sys.exc_info()[0])
-                
+        else:
             exit(1)
+
 
     def save_as_audio(im, args):
 
@@ -446,18 +462,249 @@ class Rawdodendron:
                 exit(2)
 
 
+class RawWindow(QMainWindow):
 
-# create parser
-parser = Parameters.create_parser()
+    history = History()
+        
+    class Input:
+        counter = 0
 
-# load and validate parameters
-args = parser.parse_args()
+        def __init__(self, filename, args):
+            self.filename = filename
+            self.args = copy(args)
+            self.is_valid = False
+
+            self.id = RawWindow.Input.counter
+            RawWindow.Input.counter += 1
+
+            try:
+                self.input_file = Rawdodendron.load_input_file(filename, args.verbose)
+                self.is_valid = self.input_file != None
+
+                if self.is_valid:
+                    if isinstance(self.input_file, Image.Image):
+                        if args.verbose:
+                            print("Loading image:", filename)
+                        self.is_image = True
+                        RawWindow.history.consolidate_parameters_from_image(self.args, self.input_file)
+                    elif isinstance(self.input_file, AudioSegment):
+                        if args.verbose:
+                            print("Loading audio:", filename)
+                        self.is_image = False
+                        RawWindow.history.consolidate_parameters_from_audio(self.args, self.input_file)
+            except:
+                self.is_valid = False
+
+        def getFileName(self):
+            return os.path.basename(self.filename)
+        
+
+    class InputWidget(QWidget):
+        def __init__(self, input, listWidget, rawWindow, parent = None):
+            super(QWidget, self).__init__(parent)
+            self.input = input
+
+            self.hbox = QHBoxLayout()
+            self.setLayout(self.hbox)
+
+            # add icon
+            image_size = 32
+            self.icon = QLabel()
+            if input.is_image:
+                self.icon.setPixmap(QIcon.fromTheme("image").pixmap(image_size))
+            else:
+                self.icon.setPixmap(QIcon.fromTheme("audio").pixmap(image_size))
+            self.icon.setFixedWidth(image_size)
+            self.hbox.addWidget(self.icon)
+
+            # add filename
+            self.label = QLabel()
+            self.label.setText(self.input.getFileName())
+            self.hbox.addWidget(self.label)
+
+            self.delButton = QPushButton()
+            self.delButton.setText("Supprimer")
+            self.delButton.setFixedSize(self.delButton.sizeHint())
+            self.delButton.clicked.connect(lambda x: listWidget.on_delete_input(input, x))
+            self.hbox.addWidget(self.delButton)
+
+            # TODO: self.focus.connect(lambda x: rawWindow.on_active_input(input, x))
 
 
-if args.input != None and args.output != None:
-    # if input and output are provided, run the conversion
-    Rawdodendron.convert(args)
-else:
-    print ("Interactive mode not yet implemented.")
+    class InputListWidget(QWidget):
+        def __init__(self, rawWindow, parent = None):
+            super(QWidget, self).__init__(parent)
+            
+            self.rawWindow = rawWindow
+            
+            self.vbox = QVBoxLayout()
+            self.setLayout(self.vbox)
+
+            # create header with buttons
+            self.header = QWidget()
+            self.vbox.addWidget(self.header)
+            self.hbox = QHBoxLayout()
+            self.header.setLayout(self.hbox)
+
+            # clear button
+            self.clearButton = QPushButton()
+            self.clearButton.setText("Vider la liste")
+            self.clearButton.setIcon(QIcon.fromTheme("delete"))
+            self.clearButton.clicked.connect(self.on_delete_all)
+            self.hbox.addWidget(self.clearButton)
+
+            # add button
+            self.addButton = QPushButton()
+            self.addButton.setText("Ajouter un fichier")
+            self.addButton.setIcon(QIcon.fromTheme("document-open"))
+            self.hbox.addWidget(self.addButton)
+            self.addButton.clicked.connect(rawWindow.on_add_input)
+
+            # create list
+            self.list = QListWidget()
+            self.list.currentItemChanged.connect(lambda x: rawWindow.on_active_input(self.list.currentItem().input if self.list.currentItem() != None else None, x))
+            self.vbox.addWidget(self.list)
+
+        def addInput(self, input):
+            widget = RawWindow.InputWidget(input, self, self.rawWindow)
+            list_item = QListWidgetItem(self.list)
+            list_item.input = input
+            widget.adjustSize()
+            list_item.setSizeHint(widget.sizeHint())
+            self.list.setItemWidget(list_item, widget)
+            widget.setFocus()
+
+        @pyqtSlot()
+        def on_delete_all(self):
+            self.list.clear()
+            self.list.setFocus()
+
+        @pyqtSlot()
+        def on_delete_input(self, input, e):
+            for r in range(self.list.count()):
+                row = self.list.item(r)
+                if row.input.id == input.id:
+                    self.list.takeItem(r)
+                    self.list.setFocus()
+                    break
+
+        def getInputs():
+            return [self.list.item(r).input for r in range(self.list.count())]
+
+    class EditPanel(QWidget):    
+        def __init__(self, parent = None):
+            super(QWidget, self).__init__(parent)
+            self.current = None
+
+        def setCurrent(self, input):
+            print("current:", input)
+            # TODO: implement it
+
+
+    def __init__(self, args, parent = None):
+        super(RawWindow, self).__init__(parent)
+        self.setAcceptDrops(True)
+        self.resize(600, 800)
+        self.setWindowTitle("Rawdodendron")
+
+        self.args = args
+
+        bar = self.menuBar()
+        file = bar.addMenu("Fichier")
+        file.addAction("Ouvrir...").setShortcut(QKeySequence("Ctrl+O"))
+        file.addAction("Quitter").setShortcut(QKeySequence("Ctrl+Q"))
+        file.triggered[QAction].connect(self.processtrigger)
+
+        # create the main widget and its layout
+        self.main_widget = QWidget()
+        self.vbox = QVBoxLayout()
+        self.main_widget.setLayout(self.vbox)
+        self.setCentralWidget(self.main_widget)
+
+        # add a splitter
+        self.splitter = QSplitter(Qt.Vertical)
+        self.vbox.addWidget(self.splitter)
+
+        # create file list and add it to the splitter
+        self.inputs_widget = RawWindow.InputListWidget(self)
+        self.splitter.addWidget(self.inputs_widget)
+
+        # create the edit panel and add it tot the splitter
+        self.edit_panel = RawWindow.EditPanel()
+        self.splitter.addWidget(self.edit_panel)
+
+        # add a process button
+        self.processButton = QPushButton("Convertir tous les fichiers")
+        self.vbox.addWidget(self.processButton)
+
+        self.statusBar = QStatusBar()
+        self.setStatusBar(self.statusBar)
+
+        # if args.input is set, add the input file
+        if args.input != None:
+            self.addInputFile(args.input.name)
+
+    def dragEnterEvent(self, event):
+        if event.mimeData().hasUrls():
+            event.accept()
+        else:
+            event.ignore()
+
+    def dropEvent(self, event):
+        files = [unicode(u.toLocalFile()) for u in event.mimeData().urls()]
+        for f in files:
+            self.addInputFile(f)
+
+    def addInputFile(self, filename):
+        input = RawWindow.Input(filename, args)
+        if input.is_valid:
+            print("Loading input file:", filename)
+            self.inputs_widget.addInput(input)
+        else:
+            print("Error while loading", filename)
+            error_dialog = QErrorMessage(self)
+            error_dialog.showMessage("Le fichier que vous avez sélectionné n'est pas lisible par Rawdodendron.")
+
+    
+    @pyqtSlot()
+    def on_active_input(self, input, e):
+        self.edit_panel.setCurrent(input)
+
+    @pyqtSlot()
+    def on_add_input(self):
+        print("Ouverture de fichiers...")
+        options = QFileDialog.Options()
+        options |= QFileDialog.DontUseNativeDialog
+        files, _ = QFileDialog.getOpenFileNames(self,"Sélection d'images et fichiers son", "",
+                            "Images (*.png *.jpg *.bmp);; Sons (*.wav *.ogg *.mp3 *.flac);; Tous les fichiers (*.*)", options=options)
+        
+        for f in files:
+            self.addInputFile(f)
+
+    def processtrigger(self, q):
+	
+        if (q.text() == "Ouvrir..."):
+            self.on_add_input()
+        if q.text() == "Quitter":
+            sys.exit()
+                
+
+if __name__ == '__main__':
+    
+    # create parser
+    parser = Parameters.create_parser()
+
+    # load and validate parameters
+    args = parser.parse_args()
+
+
+    if args.input != None and args.output != None:
+        # if input and output are provided, run the conversion
+        Rawdodendron.convert(args)
+    else:
+        app = QApplication(sys.argv)
+        ex = RawWindow(args=args)
+        ex.show()
+        sys.exit(app.exec_())
 
 

@@ -19,11 +19,12 @@ Using this tool before and after using a [Raster Graphic Editor](https://en.wiki
 * [pillow](https://pillow.readthedocs.io/en/stable/)
 * [argparse](https://docs.python.org/3/library/argparse.html)
 * [appdirs](https://pypi.org/project/appdirs/)
+* [PyQt5](https://pypi.org/project/PyQt5/)
 
 ### Install dependancies on a debian system
 
 ```
-sudo apt install python3-pydub python3-pil python3-appdirs
+sudo apt install python3-pydub python3-pil python3-appdirs python3-pyqt5
 ```
 
 ## Installation
