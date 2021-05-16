@@ -225,16 +225,19 @@ class Rawdodendron:
 
     def save_as_audio(im, args):
 
+        # consolidate parameters using history
         history = History()
         history.consolidate_parameters_from_image(args, im)
 
+        # get data
         data = im.tobytes()
-
+        # get information about the output (number of channels)
         channels =  1 if args.mono else 2
 
         if args.verbose:
             print("")
             
+        # apply a byte-to-byte conversion if required
         if args.conversion_u_law:
             if args.verbose:
                 print("Conversion using u-law")
@@ -244,6 +247,7 @@ class Rawdodendron:
                 print("Conversion using a-law")
             data = audioop.lin2alaw(data, 1)
 
+        # handle extra bytes (truncate or add missing data)
         if len(data) % (channels) != 0:
             if args.truncate:
                 if args.verbose:
@@ -254,7 +258,7 @@ class Rawdodendron:
                     print("Add missing bytes at the end of binary data")
                 data = data + b"\x00"
 
-
+        # create the audio structure
         au = AudioSegment(
             # raw audio data (bytes)
             data = data,
@@ -278,21 +282,25 @@ class Rawdodendron:
         if format == "wave":
             format = "wav"
 
+        # save file
         file_handle = au.export(args.output.name, format=format)
+
+        # store input and output properties in the history
         history.store_parameters(au, im, True)
 
-
+    # get the image size from the parameters
     def get_image_size(data, args):
-
+        # it depends on the number of bytes per pixel
         channels = 1 if args.greyscale else 4 if args.rgba else 3
 
+        # if a size is given, we use it
         if args.width != None:
             width = args.width
 
             height = len(data) / width / channels
             height = ceil(height)
-
         else:
+            # otherwise we use the given ratio
             nb_pixels = ceil(len(data) / channels)
             # args.ratio = width / height
             # nb_pixels = width * height (if no pixel is missing)
@@ -300,12 +308,15 @@ class Rawdodendron:
             width = ceil(sqrt(nb_pixels * args.ratio))
             height = ceil(width / args.ratio)
 
+        # estimate the number of missing pixels
         missing = width * height * channels - len(data)
 
+        # if truncate is required, update the information
         if missing > 0 and args.truncate:
             missing = missing - width * channels
             height = height - 1
 
+        # return the computed image size, and the number of missing pixels (can be negative if the data has to be truncated)
         return width, height, missing
 
 
@@ -314,14 +325,17 @@ class Rawdodendron:
         # convert to 8-bits
         au = au.set_sample_width(1)
 
+        # load history
         history = History()
         history.consolidate_parameters_from_audio(args, au)
 
+        # get data from the audio
         data = au.raw_data
 
         if args.verbose:
             print("")
 
+        # apply a byte-to-byte conversion if required
         if args.conversion_u_law:
             if args.verbose:
                 print("Conversion using u-law")
@@ -331,36 +345,52 @@ class Rawdodendron:
                 print("Conversion using a-law")
             data = audioop.alaw2lin(data, 1)
 
+        # compute image size
         width, height, missing = Rawdodendron.get_image_size(data, args)
 
+        # add missing pixels with an 00 value
         if missing > 0:
             if args.verbose:
                 print("Add missing bytes at the end of binary data")
             data = data + b"\x00" * missing
+        # if required, truncate data
         elif missing < 0:
             if args.verbose:
                 print("Truncate data")
             data = data[:missing]
 
-
+        # compute the target mode (greyscae, RGB, RGBA)
         mode = "L" if args.greyscale else "RGBA" if args.rgba else "RGB"
         if args.verbose:
             print("Mode: " + mode)
+
+        # create the image
         im = Image.frombytes(mode, (width, height), data, "raw", mode, 0, 1)
 
         if args.verbose:
             print("Export data: " + args.output.name)
 
         try:
+            # try to save the image
             im.save(args.output.name)
+            # finaly, store the configuration in the history logs
             history.store_parameters(au, im, False)
-        except Exception:
+        except Exception as err:
+            # if an exception occured, the selected format may not support alpha channels (e.g. jpg)
             if mode == "RGBA":
+                # we try to convert the image in RGB format
                 if args.verbose:
                     print("Force RGB mode")
                 im = im.convert("RGB")
+
+                # and try to save again the image
                 im.save(args.output.name)
+
+                # finaly, store the configuration in the history logs
                 history.store_parameters(au, im, False)
+            else:
+                print("\nError:", err, "\n")
+                exit(2)
 
 
 
@@ -404,6 +434,7 @@ args = parser.parse_args()
 
 
 if args.input != None and args.output != None:
+    # if input and output are provided, run the conversion
     Rawdodendron.convert(args)
 else:
     print ("Interactive mode not yet implemented.")
