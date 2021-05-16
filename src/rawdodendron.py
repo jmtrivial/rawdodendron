@@ -15,6 +15,44 @@ import time
 
 
 class Parameters:
+    # A class to manage parameters
+
+    def create_parser():
+        parser = argparse.ArgumentParser(description="Audio/image converter using a raw approach. If no output options are given, the previous runs (history) are used to guess the possible parameters such as image size or bitrate.")
+
+        group_command_line = parser.add_argument_group("Non interactive mode", "Use command line parameters to run conversion without graphical interface")
+        group_command_line.add_argument("-i", "--input", help="Input file", type=argparse.FileType('r'))
+        group_command_line.add_argument("-o", "--output", help="Requested longitude", type=argparse.FileType('w'))
+        group_command_line.add_argument("--ignore-history", help="Ignore history and avoid parameter guessing", action="store_true")
+
+        group_conversion = group_command_line.add_mutually_exclusive_group(required=False)
+        group_conversion.add_argument("--conversion-basic", help="Use a basic 8-bits conversion", action="store_true")
+        group_conversion.add_argument("--conversion-u-law", help="Use the u-law algorithm within an 8-bits conversion", action="store_true")
+        group_conversion.add_argument("--conversion-a-law", help="Use the a-law algorithm within an 8-bits conversion", action="store_true")
+
+        group_extra_bytes = group_command_line.add_mutually_exclusive_group(required=False)
+        group_extra_bytes.add_argument("-t", "--truncate", help="Truncate data rather than adding empty elements", action="store_true")
+        group_extra_bytes.add_argument("-a", "--add-extra-bytes", help="Add empty elements to fill the structure when bytes are missing", action="store_true")
+
+        group_img2aud = parser.add_argument_group("Image to audio options", "Adjust the image to audio conversion")
+        group_img2aud.add_argument("--bitrate", help="Bitrate (44.1 kHz or 48 kHz)", choices=[44100, 48000], default=None)
+        group_channels = group_img2aud.add_mutually_exclusive_group(required=False)
+        group_channels.add_argument("--mono", help="Generate a mono file. Default: stereo", action="store_true")
+        group_channels.add_argument("--stereo", help="Generate a stereo file. Default: stereo", action="store_true")
+
+        group_aud2img = parser.add_argument_group("Audio to image options", "Adjust the audio to image conversion")
+        group_size = group_aud2img.add_mutually_exclusive_group(required=False)
+        group_size.add_argument("-r", "--ratio", help="Ratio", type=float, default=None)
+        group_size.add_argument("-w", "--width", help="Number of pixels (width)", type=int, default=None)
+
+        group_pixels = group_aud2img.add_mutually_exclusive_group(required=False)
+        group_pixels.add_argument("--rgb", help="Generate RGB image. Default: RGB", action="store_true")
+        group_pixels.add_argument("--greyscale", help="Generate greyscale image. Default: RGB", action="store_true")
+        group_pixels.add_argument("--rgba", help="Generate RGBA image. Default: RGB", action="store_true")
+
+        parser.add_argument("-v", "--verbose", help="Verbose messages", action="store_true")
+
+        return parser
 
     def has_image_size_parameter(args):
         return args.width != None or args.ratio != None
@@ -28,7 +66,22 @@ class Parameters:
     def has_extra_bytes_method(args):
         return args.truncate or args.add_extra_bytes
 
+
+
+
 class History:
+    # A class that uses previous runs to guess target properties.
+    # 
+    # Without spectific option, the script is using history to adjust the properties of the output. 
+    # For example, in the following sequence, the first run produces a stereo 44.1 kHz audio file 
+    # (default format), and store in the history the specific properties of the input image 
+    # (width, height, RGB/RGBA). The second run uses the history to identify the correct image
+    # parameters, using the properties of the audio file (number of samples, number of channels 
+    # and sample rate)  as a filtering to identify the possible configuration of the audio file
+    # ancestor.
+    # 
+    # ```rawdodendron.py -i image.png -o audio.wav``` to convert an image to an audio file
+    # ```rawdodendron.py -i audio.wav -o image.png``` to convert an audio file to an image
     history_dir = user_data_dir("rawdodendron")
     history_file = pathlib.Path(history_dir).joinpath("history.json")
 
@@ -161,7 +214,7 @@ class History:
 
 
 class Rawdodendron:
-
+    # main class that convert an image to an audio file, or an audio file to an image
 
     def convert(args):
         print("Input file: ", args.input.name)
@@ -394,40 +447,8 @@ class Rawdodendron:
 
 
 
-parser = argparse.ArgumentParser(description="Audio/image converter using a raw approach. If no output options are given, the previous runs (history) are used to guess the possible parameters such as image size or bitrate.")
-
-group_command_line = parser.add_argument_group("Non interactive mode", "Use command line parameters to run conversion without graphical interface")
-group_command_line.add_argument("-i", "--input", help="Input file", type=argparse.FileType('r'))
-group_command_line.add_argument("-o", "--output", help="Requested longitude", type=argparse.FileType('w'))
-group_command_line.add_argument("--ignore-history", help="Ignore history and avoid parameter guessing", action="store_true")
-
-group_conversion = group_command_line.add_mutually_exclusive_group(required=False)
-group_conversion.add_argument("--conversion-basic", help="Use a basic 8-bits conversion", action="store_true")
-group_conversion.add_argument("--conversion-u-law", help="Use the u-law algorithm within an 8-bits conversion", action="store_true")
-group_conversion.add_argument("--conversion-a-law", help="Use the a-law algorithm within an 8-bits conversion", action="store_true")
-
-group_extra_bytes = group_command_line.add_mutually_exclusive_group(required=False)
-group_extra_bytes.add_argument("-t", "--truncate", help="Truncate data rather than adding empty elements", action="store_true")
-group_extra_bytes.add_argument("-a", "--add-extra-bytes", help="Add empty elements to fill the structure when bytes are missing", action="store_true")
-
-group_img2aud = parser.add_argument_group("Image to audio options", "Adjust the image to audio conversion")
-group_img2aud.add_argument("--bitrate", help="Bitrate (44.1 kHz or 48 kHz)", choices=[44100, 48000], default=None)
-group_channels = group_img2aud.add_mutually_exclusive_group(required=False)
-group_channels.add_argument("--mono", help="Generate a mono file. Default: stereo", action="store_true")
-group_channels.add_argument("--stereo", help="Generate a stereo file. Default: stereo", action="store_true")
-
-group_aud2img = parser.add_argument_group("Audio to image options", "Adjust the audio to image conversion")
-group_size = group_aud2img.add_mutually_exclusive_group(required=False)
-group_size.add_argument("-r", "--ratio", help="Ratio", type=float, default=None)
-group_size.add_argument("-w", "--width", help="Number of pixels (width)", type=int, default=None)
-
-group_pixels = group_aud2img.add_mutually_exclusive_group(required=False)
-group_pixels.add_argument("--rgb", help="Generate RGB image. Default: RGB", action="store_true")
-group_pixels.add_argument("--greyscale", help="Generate greyscale image. Default: RGB", action="store_true")
-group_pixels.add_argument("--rgba", help="Generate RGBA image. Default: RGB", action="store_true")
-
-parser.add_argument("-v", "--verbose", help="Verbose messages", action="store_true")
-
+# create parser
+parser = Parameters.create_parser()
 
 # load and validate parameters
 args = parser.parse_args()
