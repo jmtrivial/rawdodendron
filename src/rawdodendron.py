@@ -162,6 +162,67 @@ class History:
 
 class Rawdodendron:
 
+
+    def convert(args):
+        print("Input file: ", args.input.name)
+        print("Output file: ", args.output.name)
+
+        try:
+            # try to load the input as an audio file
+            au = AudioSegment.from_file(args.input.name)
+
+            if args.verbose:
+                print("Audio properties: ", "channels:", au.channels, ", sample_width:", au.sample_width, ", frame_rate", au.frame_rate, ", duration:", au.duration_seconds, "s")
+
+            try:
+                # try to convert the audio file as an image
+                Rawdodendron.save_as_image(au, args)
+            except Exception as e:
+                print("\nError while writing image file", e, "\n")
+                exit(2)
+            except:
+                print("\nError while writing image file, unknown error\n")
+                exit(2)
+        except: 
+            try:
+                # if the file is not an audio file, try to load it as an image
+                im = Image.open(args.input.name)
+
+                if args.verbose:
+                    print("Image size:", str(im.width) + "px",  "*", str(im.height) + "px", ", mode:", im.mode)
+
+                try:
+                    # try to convert the image file as an audio file
+                    Rawdodendron.save_as_audio(im, args)
+                except Exception as e:
+                    print("\nError while writing audio file:", e, "\n")
+                    exit(2)
+                except:
+                    print("\nError while writing audio file, unknown error\n")
+                    exit(2)
+                    im.close()
+
+            except TypeError as err:
+
+                print("\nError while reading image:", err, "\n")
+                
+                parser.print_help()
+                
+                if args.verbose:
+                    print("\nError: ", sys.exc_info()[0])
+                
+                exit(1)
+            except Exception as err:
+                
+                print("\nError: unknown input format", err, "\n")
+                
+                parser.print_help()
+                
+                if args.verbose:
+                    print("\nError: ", sys.exc_info()[0])
+                
+            exit(1)
+
     def save_as_audio(im, args):
 
         history = History()
@@ -343,72 +404,7 @@ args = parser.parse_args()
 
 
 if args.input != None and args.output != None:
-
-    print("Input file: ", args.input.name)
-    print("Output file: ", args.output.name)
-
-    try:
-
-        au = AudioSegment.from_file(args.input.name)
-
-        if args.verbose:
-            print("Audio properties: ", "channels:", au.channels, ", sample_width:", au.sample_width, ", frame_rate", au.frame_rate, ", duration:", au.duration_seconds, "s")
-
-        try:        
-            Rawdodendron.save_as_image(au, args)
-        except Exception as e:
-            print("")
-            print("Error while writing image file", e)
-            print("")
-            exit(2)
-
-    except: 
-
-        try:
-            im = Image.open(args.input.name)
-
-            if args.verbose:
-                print("Image size:", str(im.width) + "px",  "*", str(im.height) + "px", ", mode:", im.mode)
-
-            try:
-                Rawdodendron.save_as_audio(im, args)
-            except Exception as e:
-                print("")
-                print("Error while writing audio file:", e)
-                print("")
-                exit(2)
-
-            im.close()
-
-        except TypeError as err:
-
-            print("")
-            print("Error while reading image")
-            print("")
-            
-            parser.print_help()
-            
-            if args.verbose:
-                print("")
-                print("Error: ", err, sys.exc_info()[0])
-            
-            exit(1)
-        except Exception as err:
-            
-            print("")
-            print("Error: unknown input format")
-            print("")
-            
-            parser.print_help()
-            
-            if args.verbose:
-                print("")
-                print("Error: ", err, sys.exc_info()[0])
-            
-            exit(1)
-
-
-    pass
+    Rawdodendron.convert(args)
 else:
     print ("Interactive mode not yet implemented.")
 
