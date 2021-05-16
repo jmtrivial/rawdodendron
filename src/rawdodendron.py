@@ -715,6 +715,8 @@ class RawWindow(QMainWindow):
 
         self.setNbElements(0)
 
+        self.inputs_widget.setFocus()
+
         # if args.input is set, add the input file
         if args.input != None:
             self.addInputFile(args.input.name)
