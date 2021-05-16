@@ -492,26 +492,29 @@ class RawWindow(QMainWindow):
         def __init__(self, filename, args):
             self.filename = filename
             self.args = copy(args)
-            self.is_valid = False
 
             self.id = RawWindow.Input.counter
             RawWindow.Input.counter += 1
 
+            self.load_input_file()
+
+        def load_input_file(self):
+            self.is_valid = False
             try:
-                self.input_file = Rawdodendron.load_input_file(filename, args.verbose)
+                self.input_file = Rawdodendron.load_input_file(self.filename, self.args.verbose)
                 self.is_valid = self.input_file != None
 
                 if self.is_valid:
                     if isinstance(self.input_file, Image.Image):
-                        if args.verbose:
-                            print("Loading image:", filename)
+                        if self.args.verbose:
+                            print("Loading image:", self.filename)
                         self.is_image = True
                         RawWindow.history.consolidate_parameters_from_image(self.args, self.input_file)
                         # set output name
                         self.computeNextPossibleOutputName()
                     elif isinstance(self.input_file, AudioSegment):
-                        if args.verbose:
-                            print("Loading audio:", filename)
+                        if self.args.verbose:
+                            print("Loading audio:", self.filename)
                         self.is_image = False
                         RawWindow.history.consolidate_parameters_from_audio(self.args, self.input_file)
                         # set output name
@@ -525,16 +528,25 @@ class RawWindow(QMainWindow):
                 filename = self.args.output.name
                 extension = pathlib.Path(self.args.output.name).suffix
             elif self.is_image:
+                print("is image")
                 filename = self.filename
                 extension = ".wav"
             else:
+                print("is audio")
                 filename = self.filename
                 extension = ".png"
+            print("next possible", filename, extension)
             self.args.output = RawWindow.Input.OutputDescription(filename, extension)
 
 
         def getFileName(self):
             return os.path.basename(self.filename)
+
+        def inverse(self):
+            print("on inverse", self.filename)
+            self.filename = self.args.output.name
+            self.args.output = None
+            self.load_input_file()
         
 
     class InputWidget(QWidget):
@@ -546,18 +558,13 @@ class RawWindow(QMainWindow):
             self.setLayout(self.hbox)
 
             # add icon
-            image_size = 32
+            self.image_size = 32
             self.icon = QLabel()
-            if input.is_image:
-                self.icon.setPixmap(QIcon.fromTheme("image").pixmap(image_size))
-            else:
-                self.icon.setPixmap(QIcon.fromTheme("audio").pixmap(image_size))
-            self.icon.setFixedWidth(image_size)
+            self.icon.setFixedWidth(self.image_size)
             self.hbox.addWidget(self.icon)
 
             # add filename
             self.label = QLabel()
-            self.label.setText(self.input.getFileName())
             self.hbox.addWidget(self.label)
 
             self.delButton = QPushButton()
@@ -566,7 +573,15 @@ class RawWindow(QMainWindow):
             self.delButton.clicked.connect(lambda x: listWidget.on_delete_input(input, x))
             self.hbox.addWidget(self.delButton)
 
-            # TODO: self.focus.connect(lambda x: rawWindow.on_active_input(input, x))
+            self.update()
+    
+        def update(self):
+            if self.input.is_image:
+                self.icon.setPixmap(QIcon.fromTheme("image").pixmap(self.image_size))
+            else:
+                self.icon.setPixmap(QIcon.fromTheme("audio").pixmap(self.image_size))
+            self.label.setText(self.input.getFileName())
+
 
 
     class InputListWidget(QWidget):
@@ -607,15 +622,23 @@ class RawWindow(QMainWindow):
             widget = RawWindow.InputWidget(input, self, self.rawWindow)
             list_item = QListWidgetItem(self.list)
             list_item.input = input
+            list_item.widget = widget
             widget.adjustSize()
             list_item.setSizeHint(widget.sizeHint())
             self.list.setItemWidget(list_item, widget)
             widget.setFocus()
+            self.rawWindow.setNbElements(self.list.count())
+
+        def updateWidgets(self):
+            for r in range(self.list.count()):
+                row = self.list.item(r).widget.update()
+
 
         @pyqtSlot()
         def on_delete_all(self):
             self.list.clear()
             self.list.setFocus()
+            self.rawWindow.setNbElements(self.list.count())
 
         @pyqtSlot()
         def on_delete_input(self, input, e):
@@ -625,9 +648,13 @@ class RawWindow(QMainWindow):
                     self.list.takeItem(r)
                     self.list.setFocus()
                     break
+            self.rawWindow.setNbElements(self.list.count())
 
         def getInputs(self):
             return [self.list.item(r).input for r in range(self.list.count())]
+        
+        def setFocus(self):
+            self.list.setFocus()
 
     class EditPanel(QWidget):    
         def __init__(self, parent = None):
@@ -671,10 +698,22 @@ class RawWindow(QMainWindow):
         self.edit_panel = RawWindow.EditPanel()
         self.splitter.addWidget(self.edit_panel)
 
+        self.bottom_bar = QWidget()
+        self.hbox = QHBoxLayout()
+        self.bottom_bar.setLayout(self.hbox)
+        self.vbox.addWidget(self.bottom_bar)
+
         # add a process button
+        self.invertConversion = QRadioButton("Inverser après conversion")
+        self.invertConversion.setToolTip("Après conversion, les fichiers de la liste sont remplacés par les fichiers qui ont été générés, pour permettre une conversion réciproque rapide.")
+        self.invertConversion.setChecked(True)
+        self.hbox.addWidget(self.invertConversion)
+
         self.processButton = QPushButton("Convertir tous les fichiers")
-        self.vbox.addWidget(self.processButton)
+        self.hbox.addWidget(self.processButton)
         self.processButton.clicked.connect(self.process_inputs)
+
+        self.setNbElements(0)
 
         # if args.input is set, add the input file
         if args.input != None:
@@ -715,10 +754,19 @@ class RawWindow(QMainWindow):
             else:
                 print("Convert", input.filename, "to", args.output.name)
                 Rawdodendron.save_as_image(input.input_file, args)
+            # if required, inverse the conversion list
+            if self.invertConversion.isChecked():
+                input.inverse()
             # update output name in case of multiple runs
             input.computeNextPossibleOutputName()
+        # set focus to the list after conversion
+        self.inputs_widget.setFocus()
+        # update list
+        if self.invertConversion.isChecked():
+            self.inputs_widget.updateWidgets()
 
-
+    def setNbElements(self, nb = 0):
+        self.processButton.setEnabled(nb != 0)
 
     @pyqtSlot()
     def on_active_input(self, input, e):
