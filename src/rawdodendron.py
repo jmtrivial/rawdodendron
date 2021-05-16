@@ -16,6 +16,8 @@ from PyQt5.QtCore import *
 from PyQt5.QtGui import *
 from PyQt5.QtWidgets import *
 from copy import copy
+import re
+
 
 
 class Parameters:
@@ -469,6 +471,24 @@ class RawWindow(QMainWindow):
     class Input:
         counter = 0
 
+        class OutputDescription:
+            def __init__(self, input_name, extension):
+                path = pathlib.Path(input_name)
+                parent = str(path.parent)
+                stem = str(path.stem)
+                m = re.search('(.*) \(([0-9]+?)\)$', stem)
+                if m:
+                    found = m.group(2)
+                    i = int(found)
+                    stem = m.group(1)
+                    self.name = parent + "/" + stem + " (" + str(i) + ")" + extension
+                else:
+                    self.name = parent + "/" + stem + extension
+                    i = 0
+                while os.path.exists(self.name):
+                    i += 1
+                    self.name = parent + "/" + stem + " (" + str(i) + ")" + extension
+
         def __init__(self, filename, args):
             self.filename = filename
             self.args = copy(args)
@@ -487,13 +507,31 @@ class RawWindow(QMainWindow):
                             print("Loading image:", filename)
                         self.is_image = True
                         RawWindow.history.consolidate_parameters_from_image(self.args, self.input_file)
+                        # set output name
+                        self.computeNextPossibleOutputName()
                     elif isinstance(self.input_file, AudioSegment):
                         if args.verbose:
                             print("Loading audio:", filename)
                         self.is_image = False
                         RawWindow.history.consolidate_parameters_from_audio(self.args, self.input_file)
+                        # set output name
+                        self.computeNextPossibleOutputName()
+                        
             except:
                 self.is_valid = False
+
+        def computeNextPossibleOutputName(self):
+            if self.args.output != None:
+                filename = self.args.output.name
+                extension = pathlib.Path(self.args.output.name).suffix
+            elif self.is_image:
+                filename = self.filename
+                extension = ".wav"
+            else:
+                filename = self.filename
+                extension = ".png"
+            self.args.output = RawWindow.Input.OutputDescription(filename, extension)
+
 
         def getFileName(self):
             return os.path.basename(self.filename)
@@ -588,7 +626,7 @@ class RawWindow(QMainWindow):
                     self.list.setFocus()
                     break
 
-        def getInputs():
+        def getInputs(self):
             return [self.list.item(r).input for r in range(self.list.count())]
 
     class EditPanel(QWidget):    
@@ -636,9 +674,7 @@ class RawWindow(QMainWindow):
         # add a process button
         self.processButton = QPushButton("Convertir tous les fichiers")
         self.vbox.addWidget(self.processButton)
-
-        self.statusBar = QStatusBar()
-        self.setStatusBar(self.statusBar)
+        self.processButton.clicked.connect(self.process_inputs)
 
         # if args.input is set, add the input file
         if args.input != None:
@@ -666,6 +702,24 @@ class RawWindow(QMainWindow):
             error_dialog.showMessage("Le fichier que vous avez sélectionné n'est pas lisible par Rawdodendron.")
 
     
+    @pyqtSlot()
+    def process_inputs(self):
+        inputs = self.inputs_widget.getInputs()
+
+        for input in inputs:
+            args = copy(input.args)
+            args.ignore_history = True
+            if input.is_image:
+                print("Convert", input.filename, "to", args.output.name)
+                Rawdodendron.save_as_audio(input.input_file, args)
+            else:
+                print("Convert", input.filename, "to", args.output.name)
+                Rawdodendron.save_as_image(input.input_file, args)
+            # update output name in case of multiple runs
+            input.computeNextPossibleOutputName()
+
+
+
     @pyqtSlot()
     def on_active_input(self, input, e):
         self.edit_panel.setCurrent(input)
