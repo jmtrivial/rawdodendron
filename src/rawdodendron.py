@@ -528,14 +528,11 @@ class RawWindow(QMainWindow):
                 filename = self.args.output.name
                 extension = pathlib.Path(self.args.output.name).suffix
             elif self.is_image:
-                print("is image")
                 filename = self.filename
                 extension = ".wav"
             else:
-                print("is audio")
                 filename = self.filename
                 extension = ".png"
-            print("next possible", filename, extension)
             self.args.output = RawWindow.Input.OutputDescription(filename, extension)
 
 
@@ -543,7 +540,6 @@ class RawWindow(QMainWindow):
             return os.path.basename(self.filename)
 
         def inverse(self):
-            print("on inverse", self.filename)
             self.filename = self.args.output.name
             self.args.output = None
             self.load_input_file()
@@ -776,7 +772,7 @@ class RawWindow(QMainWindow):
 
     @pyqtSlot()
     def on_add_input(self):
-        print("Ouverture de fichiers...")
+        print("Opening files...")
         options = QFileDialog.Options()
         options |= QFileDialog.DontUseNativeDialog
         files, _ = QFileDialog.getOpenFileNames(self,"Sélection d'images et fichiers son", "",
