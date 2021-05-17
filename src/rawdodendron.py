@@ -19,6 +19,20 @@ from copy import copy
 import re
 
 
+class Utils:
+
+    def image_description(im):
+        return {"i_width": im.width, "i_mode": im.mode, "i_size": len(im.tobytes())}
+
+    def audio_description(au):
+        return {"a_bitrate": au.frame_rate, "a_channels": au.channels, "a_size": len(au.raw_data)}
+
+    def description(obj):
+        if isinstance(obj, Image.Image):
+            return Utils.image_description(obj)
+        else:
+            return Utils.audio_description(obj)
+
 
 class Parameters:
     # A class to manage parameters
@@ -168,7 +182,7 @@ class History:
     def consolidate_parameters_from_image(self, args, im):
         # consolidate args
 
-        data = self.get_params_from_history(len(im.tobytes()), self.image_description(im), True)
+        data = self.get_params_from_history(len(im.tobytes()), Utils.image_description(im), True)
 
         if data != None and not args.ignore_history:
             # try to consolidate using history
@@ -189,7 +203,7 @@ class History:
 
     def consolidate_parameters_from_audio(self, args, au):
         # consolidate args
-        data = self.get_params_from_history(len(au.raw_data), self.audio_description(au), False)
+        data = self.get_params_from_history(len(au.raw_data), Utils.audio_description(au), False)
         if data != None and not args.ignore_history:
             # try to consolidate using history
             if not Parameters.has_image_size_parameter(args) and "i_width" in data:
@@ -207,17 +221,11 @@ class History:
 
         self.consolidate_extra_bytes_method(args, data)
 
-    def image_description(self, im):
-        return {"i_width": im.width, "i_mode": im.mode, "i_size": len(im.tobytes())}
-
-    def audio_description(self, au):
-        return {"a_bitrate": au.frame_rate, "a_channels": au.channels, "a_size": len(au.raw_data)}
-
     def store_parameters(self, au, im, from_image):
         # store configuration
         new_data = {"from_image": from_image}
-        new_data.update(self.image_description(im))
-        new_data.update(self.audio_description(au))
+        new_data.update(Utils.image_description(im))
+        new_data.update(Utils.audio_description(au))
         self.store_params_to_history(new_data)
 
 
@@ -498,6 +506,17 @@ class RawWindow(QMainWindow):
 
             self.load_input_file()
 
+        # reload the input file and identify if it changed or not
+        def file_properties_changed(self):
+            new_input_file = Rawdodendron.load_input_file(self.filename, self.args.verbose)
+            desc = Utils.description(self.input_file)
+            new_desc = Utils.description(new_input_file)
+            if desc == new_desc:
+                self.input_file = new_input_file
+                return False
+            else:
+                return True
+
         def load_input_file(self):
             self.is_valid = False
             try:
@@ -743,20 +762,25 @@ class RawWindow(QMainWindow):
     def process_inputs(self):
         inputs = self.inputs_widget.getInputs()
 
+
         for input in inputs:
             args = copy(input.args)
             args.ignore_history = True
-            if input.is_image:
-                print("Convert", input.filename, "to", args.output.name)
-                Rawdodendron.save_as_audio(input.input_file, args)
+            if input.file_properties_changed():
+                error_dialog = QErrorMessage(self)
+                error_dialog.showMessage("Le fichier " + input.filename + " a changé de propriétés depuis son chargement, il sera ignoré")
             else:
-                print("Convert", input.filename, "to", args.output.name)
-                Rawdodendron.save_as_image(input.input_file, args)
-            # if required, inverse the conversion list
-            if self.invertConversion.isChecked():
-                input.inverse()
-            # update output name in case of multiple runs
-            input.computeNextPossibleOutputName()
+                if input.is_image:
+                    print("Convert", input.filename, "to", args.output.name)
+                    Rawdodendron.save_as_audio(input.input_file, args)
+                else:
+                    print("Convert", input.filename, "to", args.output.name)
+                    Rawdodendron.save_as_image(input.input_file, args)
+                # if required, inverse the conversion list
+                if self.invertConversion.isChecked():
+                    input.inverse()
+                # update output name in case of multiple runs
+                input.computeNextPossibleOutputName()
         # set focus to the list after conversion
         self.inputs_widget.setFocus()
         # update list
