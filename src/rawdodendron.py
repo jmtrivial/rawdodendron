@@ -675,10 +675,142 @@ class RawWindow(QMainWindow):
         def __init__(self, parent = None):
             super(QWidget, self).__init__(parent)
             self.current = None
+            self.vbox = QVBoxLayout()
+            self.setLayout(self.vbox)
+
+            self.noContentPanel = QLabel()
+            self.noContentPanel.setText("Aucun fichier sélectionné")
+            self.vbox.addWidget(self.noContentPanel)
+
+            # create the common panel
+            self.commonPanel = QGroupBox("Propriétés principales")
+            gridCommonPanel = QGridLayout()
+            self.commonPanel.setLayout(gridCommonPanel)
+            self.vbox.addWidget(self.commonPanel)
+
+            title = QLabel()
+            title.setText("Entrée:")
+            gridCommonPanel.addWidget(title, 0, 0)
+            self.inputFilename = QLineEdit()
+            self.inputFilename.setReadOnly(True)
+            gridCommonPanel.addWidget(self.inputFilename, 0, 1, 1, 6)
+            
+            title = QLabel()
+            title.setText("Sortie:")
+            gridCommonPanel.addWidget(title, 1, 0)
+            self.outputFilename = QLineEdit()
+            gridCommonPanel.addWidget(self.outputFilename, 1, 1, 1, 5)
+            self.outputExplorer = QPushButton()
+            self.outputExplorer.setText("Sélectionner...")
+            gridCommonPanel.addWidget(self.outputExplorer, 1, 6)
+
+            title = QLabel()
+            title.setText("Conversion:")
+            gridCommonPanel.addWidget(title, 2, 0)
+            self.conversion = QComboBox()
+            self.conversion.addItem("linéaire")
+            self.conversion.addItem("u-law")
+            self.conversion.addItem("a-law")
+            gridCommonPanel.addWidget(self.conversion, 2, 1, 1, 4)
+            self.conversionToAll = QPushButton()
+            self.conversionToAll.setText("Copier à tous")
+            gridCommonPanel.addWidget(self.conversionToAll, 2, 5, 1, 2)
+
+            title = QLabel()
+            title.setText("Données incomplètes:")
+            gridCommonPanel.addWidget(title, 3, 0)
+            self.missingBytes = QComboBox()
+            self.missingBytes.addItem("tronquer")
+            self.missingBytes.addItem("compléter")
+            gridCommonPanel.addWidget(self.missingBytes, 3, 1, 1, 4)
+            self.missingBytesToAll = QPushButton()
+            self.missingBytesToAll.setText("Copier à tous")
+            gridCommonPanel.addWidget(self.missingBytesToAll, 3, 5, 1, 2)
+
+
+            # create the image panel
+            self.imagePanel = QGroupBox("Propriétés de l'image cible")
+            gridImagePanel = QGridLayout()
+            self.imagePanel.setLayout(gridImagePanel)
+            self.vbox.addWidget(self.imagePanel)
+
+
+            title = QLabel()
+            title.setText("Mode:")
+            gridImagePanel.addWidget(title, 0, 0)
+            self.mode = QComboBox()
+            self.mode.addItem("Dégradé de gris")
+            self.mode.addItem("RGB (couleur)")
+            self.mode.addItem("RGBA (couleur + transparence)")
+            gridImagePanel.addWidget(self.mode, 0, 1, 1, 4)
+            self.modeToAll = QPushButton()
+            self.modeToAll.setText("Copier à tous")
+            gridImagePanel.addWidget(self.modeToAll, 0, 5, 1, 2)
+
+            title = QLabel()
+            title.setText("Taille:")
+            gridImagePanel.addWidget(title, 1, 0)
+            self.sizeMode = QComboBox()
+            self.sizeMode.addItem("ratio")
+            self.sizeMode.addItem("largeur")
+            gridImagePanel.addWidget(self.sizeMode, 1, 1, 1, 2)
+            self.sizeValue = QLineEdit()
+            gridImagePanel.addWidget(self.sizeValue, 1, 3, 1, 2)
+            self.sizeModeToAll = QPushButton()
+            self.sizeModeToAll.setText("Copier à tous")
+            gridImagePanel.addWidget(self.sizeModeToAll, 1, 5, 1, 2)
+
+            # create the audio panel
+            self.audioPanel = QGroupBox("Propriétés de l'audio cible")
+            gridAudioPanel = QGridLayout()
+            self.audioPanel.setLayout(gridAudioPanel)
+            self.vbox.addWidget(self.audioPanel)
+
+            title = QLabel()
+            title.setText("Échantillonage:")
+            gridAudioPanel.addWidget(title, 0, 0)
+            self.bitrate = QComboBox()
+            self.bitrate.addItem("44.1 kHz")
+            self.bitrate.addItem("48 kHz")
+            gridAudioPanel.addWidget(self.bitrate, 0, 1, 1, 4)
+            self.bitrateToAll = QPushButton()
+            self.bitrateToAll.setText("Copier à tous")
+            gridAudioPanel.addWidget(self.bitrateToAll, 0, 5, 1, 2)
+
+            title = QLabel()
+            title.setText("Canaux:")
+            gridAudioPanel.addWidget(title, 1, 0)
+            self.channels = QComboBox()
+            self.channels.addItem("Mono")
+            self.channels.addItem("Stéréo")
+            gridAudioPanel.addWidget(self.channels, 1, 1, 1, 4)
+            self.channelsToAll = QPushButton()
+            self.channelsToAll.setText("Copier à tous")
+            gridAudioPanel.addWidget(self.channelsToAll, 1, 5, 1, 2)
+
+            self.detailsText = QLabel()
+            self.vbox.addWidget(self.detailsText)
+
+            # TODO: connect widgets to update self.unput
+
+            self.setCurrent(None)
 
         def setCurrent(self, input):
-            print("current:", input)
-            # TODO: implement it
+            self.current = input
+            self.noContentPanel.setVisible(input == None)
+            self.commonPanel.setVisible(input != None)
+            self.imagePanel.setVisible(input != None and input.is_image)
+            self.audioPanel.setVisible(input != None and not input.is_image)
+            
+            
+            # update widget contents
+            self.updateUI()
+
+        def updateUI(self):
+            if self.current != None:
+                self.inputFilename.setText(self.current.filename)
+                self.outputFilename.setText(self.current.args.output.name)
+                # TODO: set all other entries
 
 
     def __init__(self, args, parent = None):
