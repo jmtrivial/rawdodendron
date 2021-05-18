@@ -550,18 +550,36 @@ class RawWindow(QMainWindow):
                 return "truncate"
             else:
                 return "add-extra-bytes"
+
+        def set_missing_bytes_method(self, method):
+            self.args.truncate = method == "truncate"
+            self.args.add_extra_bytes = method == "add-extra-bytes"
         
         def get_conversion_method(self):
             return Utils.conversion_method(self.args)
 
+        def set_conversion_method(self, method):
+            self.args.conversion_linear = method == "linear"
+            self.args.conversion_u_law = method == "inverse u-law"
+            self.args.conversion_inverse_u_law = method == "u-law"
+            self.args.conversion_a_law = method == "inverse a-law"
+            self.args.conversion_inverse_a_law = method == "a-law"
+
         def get_bitrate(self):
             return self.args.bitrate
+
+        def set_bitrate(self, br):
+            self.args.bitrate = br
 
         def get_channels(self):
             if self.args.mono:
                 return "mono"
             else:
                 return "stereo"
+
+        def set_channels(self, channels):
+            self.args.mono = channels == "mono"
+            self.args.stereo = channels == "stereo"
 
         def get_ratio_size(self):
             return self.args.ratio
@@ -582,6 +600,11 @@ class RawWindow(QMainWindow):
                 return "rgba"
             else:
                 return "rgb"
+        
+        def set_pixel_mode(self, mode):
+            self.args.grayscale = mode == "greyscale"
+            self.args.rgb = "rgb"
+            self.args.rgba = "rgba"
 
         # reload the input file and identify if it changed or not
         def file_properties_changed(self):
@@ -946,23 +969,23 @@ class RawWindow(QMainWindow):
         
         @pyqtSlot()
         def onUpdateMissingBytes(self):
-            print("To be implemented")
+            self.current.set_missing_bytes_method(self.missingBytes_values[self.missingBytes.currentIndex()][0])
 
         @pyqtSlot()
         def onUpdateConversion(self):
-            print("To be implemented")
+            self.current.set_conversion_method(self.conversion_values[self.conversion.currentIndex()][0])
 
         @pyqtSlot()
         def onUpdateBitrate(self):
-            print("To be implemented")
+            self.current.set_bitrate(self.bitrate_values[self.bitrate.currentIndex()][0])
 
         @pyqtSlot()
         def onUpdateChannels(self):
-            print("To be implemented")
+            self.current.set_channels(self.channels_values[self.channels.currentIndex()][0])
 
         @pyqtSlot()
         def onUpdateMode(self):
-            print("To be implemented")
+            self.current.set_pixel_mode(self.mode_values[self.mode.currentIndex()][0])
 
         @pyqtSlot()
         def onUpdateSizeMode(self):
