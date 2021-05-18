@@ -963,10 +963,12 @@ class RawWindow(QMainWindow):
                 
         @pyqtSlot()
         def onOutputExplorerClicked(self):
+            # TODO
             print("To be implemented")
             
         @pyqtSlot()
         def onUpdateOutputFile(self):
+            # TODO
             print("To be implemented")
         
         @pyqtSlot()
@@ -991,10 +993,12 @@ class RawWindow(QMainWindow):
 
         @pyqtSlot()
         def onUpdateSizeMode(self):
+            # TODO
             print("To be implemented")
 
         @pyqtSlot()
         def onUpdateSizeValue(self):
+            # TODO
             print("To be implemented")
 
     def __init__(self, args, parent = None):
