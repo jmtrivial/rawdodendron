@@ -653,19 +653,19 @@ class RawWindow(QMainWindow):
             self.hbox = QHBoxLayout()
             self.header.setLayout(self.hbox)
 
-            # clear button
-            self.clearButton = QPushButton()
-            self.clearButton.setText("Vider la liste")
-            self.clearButton.setIcon(QIcon.fromTheme("delete"))
-            self.clearButton.clicked.connect(self.on_delete_all)
-            self.hbox.addWidget(self.clearButton)
-
             # add button
             self.addButton = QPushButton()
             self.addButton.setText("Ajouter un fichier")
             self.addButton.setIcon(QIcon.fromTheme("document-open"))
             self.hbox.addWidget(self.addButton)
             self.addButton.clicked.connect(rawWindow.on_add_input)
+
+            # clear button
+            self.clearButton = QPushButton()
+            self.clearButton.setText("Vider la liste")
+            self.clearButton.setIcon(QIcon.fromTheme("delete"))
+            self.clearButton.clicked.connect(self.on_delete_all)
+            self.hbox.addWidget(self.clearButton)
 
             # create list
             self.list = QListWidget()
