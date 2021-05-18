@@ -1044,6 +1044,10 @@ class RawWindow(QMainWindow):
         self.hbox.addWidget(self.processButton)
         self.processButton.clicked.connect(self.process_inputs)
 
+        self.progressBar = QProgressBar()
+        self.hbox.addWidget(self.progressBar)
+        self.progressBar.setVisible(False)
+
         self.setNbElements(0)
 
         self.inputs_widget.setFocus()
@@ -1078,8 +1082,17 @@ class RawWindow(QMainWindow):
     def process_inputs(self):
         inputs = self.inputs_widget.getInputs()
 
+        # disable interface and draw a process bar
+        self.processButton.setVisible(False)
+        self.progressBar.setVisible(True)
+        self.progressBar.setRange(0, len(inputs))
+        self.progressBar.setValue(0)
+        self.inputs_widget.setEnabled(False)
+        self.edit_panel.setEnabled(False)
+        self.invertConversion.setEnabled(False)
 
-        for input in inputs:
+        for i, input in enumerate(inputs):
+            self.progressBar.setValue(i + 1)
             args = copy(input.args)
             args.ignore_history = True
             if input.file_properties_changed():
@@ -1105,6 +1118,14 @@ class RawWindow(QMainWindow):
 
         # update panel
         self.edit_panel.fullUpdateUI()
+
+        # update interface
+        self.inputs_widget.setEnabled(True)
+        self.edit_panel.setEnabled(True)
+        self.invertConversion.setEnabled(True)
+        self.processButton.setVisible(True)
+        self.progressBar.setVisible(False)
+
 
     def setNbElements(self, nb = 0):
         self.processButton.setEnabled(nb != 0)
