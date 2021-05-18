@@ -545,6 +545,44 @@ class RawWindow(QMainWindow):
 
             self.load_input_file()
 
+        def get_missing_bytes_method(self):
+            if self.args.truncate:
+                return "truncate"
+            else:
+                return "add-extra-bytes"
+        
+        def get_conversion_method(self):
+            return Utils.conversion_method(self.args)
+
+        def get_bitrate(self):
+            return self.args.bitrate
+
+        def get_channels(self):
+            if self.args.mono:
+                return "mono"
+            else:
+                return "stereo"
+
+        def get_ratio_size(self):
+            return self.args.ratio
+
+        def get_width_size(self):
+            return self.args.width
+
+        def get_size_mode(self):
+            if self.args.width:
+                return "width"
+            else:
+                return "ratio"
+
+        def get_pixel_mode(self):
+            if self.args.greyscale:
+                return "greyscale"
+            elif self.args.rgba:
+                return "rgba"
+            else:
+                return "rgb"
+
         # reload the input file and identify if it changed or not
         def file_properties_changed(self):
             new_input_file = Rawdodendron.load_input_file(self.filename, self.args.verbose)
@@ -747,11 +785,14 @@ class RawWindow(QMainWindow):
             title.setText("Conversion:")
             gridCommonPanel.addWidget(title, 2, 0)
             self.conversion = QComboBox()
-            self.conversion.addItem("linéaire")
-            self.conversion.addItem("u-law")
-            self.conversion.addItem("u-law inverse")
-            self.conversion.addItem("a-law")
-            self.conversion.addItem("a-law inverse")
+            self.conversion_values = [ ("linear", "linéaire"),
+                                        ("u-law", "u-law"),
+                                        ("inverse u-law", "u-law inverse"),
+                                        ("a-law", "a-law"),
+                                        ("inverse a-law", "a-law inverse")
+                                        ]
+            for i in self.conversion_values:
+                self.conversion.addItem(i[1])
             gridCommonPanel.addWidget(self.conversion, 2, 1, 1, 4)
             self.conversionToAll = QPushButton()
             self.conversionToAll.setText("Copier à tous")
@@ -761,8 +802,10 @@ class RawWindow(QMainWindow):
             title.setText("Données incomplètes:")
             gridCommonPanel.addWidget(title, 3, 0)
             self.missingBytes = QComboBox()
-            self.missingBytes.addItem("tronquer")
-            self.missingBytes.addItem("compléter")
+            self.missingBytes_values = [ ("truncate", "tronquer"),
+                                         ("add-extra-bytes", "compléter")]
+            for i in self.missingBytes_values:
+                self.missingBytes.addItem(i[1])
             gridCommonPanel.addWidget(self.missingBytes, 3, 1, 1, 4)
             self.missingBytesToAll = QPushButton()
             self.missingBytesToAll.setText("Copier à tous")
@@ -780,9 +823,11 @@ class RawWindow(QMainWindow):
             title.setText("Mode:")
             gridImagePanel.addWidget(title, 0, 0)
             self.mode = QComboBox()
-            self.mode.addItem("Dégradé de gris")
-            self.mode.addItem("RGB (couleur)")
-            self.mode.addItem("RGBA (couleur + transparence)")
+            self.mode_values = [ ("greyscale", "Dégradé de gris"),
+                                ("rgba", "couleur + transparence (RGB)"),
+                                ("rgb", "couleur (RGB)")]
+            for i in self.mode_values:
+                self.mode.addItem(i[1])
             gridImagePanel.addWidget(self.mode, 0, 1, 1, 4)
             self.modeToAll = QPushButton()
             self.modeToAll.setText("Copier à tous")
@@ -792,8 +837,10 @@ class RawWindow(QMainWindow):
             title.setText("Taille:")
             gridImagePanel.addWidget(title, 1, 0)
             self.sizeMode = QComboBox()
-            self.sizeMode.addItem("ratio")
-            self.sizeMode.addItem("largeur")
+            self.sizeMode_values = [ ("ratio", "ratio"),
+                                        ("width", "largeur")]
+            for i in self.sizeMode_values:
+                self.sizeMode.addItem(i[1])
             gridImagePanel.addWidget(self.sizeMode, 1, 1, 1, 2)
             self.sizeValue = QLineEdit()
             gridImagePanel.addWidget(self.sizeValue, 1, 3, 1, 2)
@@ -811,8 +858,10 @@ class RawWindow(QMainWindow):
             title.setText("Échantillonage:")
             gridAudioPanel.addWidget(title, 0, 0)
             self.bitrate = QComboBox()
-            self.bitrate.addItem("44.1 kHz")
-            self.bitrate.addItem("48 kHz")
+            self.bitrate_values = [ (44100, "44.1 kHz"),
+                                    (48000, "48 kHz")]
+            for i in self.bitrate_values:
+                self.bitrate.addItem(i[1])
             gridAudioPanel.addWidget(self.bitrate, 0, 1, 1, 4)
             self.bitrateToAll = QPushButton()
             self.bitrateToAll.setText("Copier à tous")
@@ -822,8 +871,10 @@ class RawWindow(QMainWindow):
             title.setText("Canaux:")
             gridAudioPanel.addWidget(title, 1, 0)
             self.channels = QComboBox()
-            self.channels.addItem("Mono")
-            self.channels.addItem("Stéréo")
+            self.channels_values = [ ("mono", "Mono"),
+                                    ("stereo", "Stéréo")]
+            for i in self.channels_values:
+                self.channels.addItem(i[1])
             gridAudioPanel.addWidget(self.channels, 1, 1, 1, 4)
             self.channelsToAll = QPushButton()
             self.channelsToAll.setText("Copier à tous")
@@ -840,18 +891,39 @@ class RawWindow(QMainWindow):
             self.current = input
             self.noContentPanel.setVisible(input == None)
             self.commonPanel.setVisible(input != None)
-            self.imagePanel.setVisible(input != None and input.is_image)
-            self.audioPanel.setVisible(input != None and not input.is_image)
+            self.imagePanel.setVisible(input != None and not input.is_image)
+            self.audioPanel.setVisible(input != None and input.is_image)
             
             
             # update widget contents
             self.updateUI()
 
+        def getIndexFromList(self, value, l):
+            for i in range(len(l)):
+                if l[i][0] == value:
+                    return i
+            print("Error: no corresponding entry:", value, l)
+            return 0
+
+
         def updateUI(self):
             if self.current != None:
                 self.inputFilename.setText(self.current.filename)
                 self.outputFilename.setText(self.current.args.output.name)
-                # TODO: set all other entries
+                self.missingBytes.setCurrentIndex(self.getIndexFromList(self.current.get_missing_bytes_method(), self.missingBytes_values))
+                self.conversion.setCurrentIndex(self.getIndexFromList(self.current.get_conversion_method(), self.conversion_values))
+
+                if self.current.is_image:
+                    self.bitrate.setCurrentIndex(self.getIndexFromList(self.current.get_bitrate(), self.bitrate_values))
+                    self.channels.setCurrentIndex(self.getIndexFromList(self.current.get_channels(), self.channels_values))
+                else:
+                    self.mode.setCurrentIndex(self.getIndexFromList(self.current.get_pixel_mode(), self.mode_values))
+                    self.sizeMode.setCurrentIndex(self.getIndexFromList(self.current.get_size_mode(), self.sizeMode_values))
+                    if self.current.get_size_mode() == "width":
+                        self.sizeValue.setText(str(self.current.get_width_size()))
+                    else:
+                        self.sizeValue.setText(str(self.current.get_ratio_size()))
+                
 
 
     def __init__(self, args, parent = None):
