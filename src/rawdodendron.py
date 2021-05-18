@@ -776,9 +776,11 @@ class RawWindow(QMainWindow):
             title.setText("Sortie:")
             gridCommonPanel.addWidget(title, 1, 0)
             self.outputFilename = QLineEdit()
+            self.outputFilename.editingFinished.connect(self.onUpdateOutputFile)
             gridCommonPanel.addWidget(self.outputFilename, 1, 1, 1, 5)
             self.outputExplorer = QPushButton()
             self.outputExplorer.setText("Sélectionner...")
+            self.outputExplorer.clicked.connect(self.onOutputExplorerClicked)
             gridCommonPanel.addWidget(self.outputExplorer, 1, 6)
 
             title = QLabel()
@@ -793,6 +795,7 @@ class RawWindow(QMainWindow):
                                         ]
             for i in self.conversion_values:
                 self.conversion.addItem(i[1])
+            self.conversion.currentIndexChanged.connect(self.onUpdateConversion)
             gridCommonPanel.addWidget(self.conversion, 2, 1, 1, 4)
             self.conversionToAll = QPushButton()
             self.conversionToAll.setText("Copier à tous")
@@ -806,6 +809,7 @@ class RawWindow(QMainWindow):
                                          ("add-extra-bytes", "compléter")]
             for i in self.missingBytes_values:
                 self.missingBytes.addItem(i[1])
+            self.missingBytes.currentIndexChanged.connect(self.onUpdateMissingBytes)
             gridCommonPanel.addWidget(self.missingBytes, 3, 1, 1, 4)
             self.missingBytesToAll = QPushButton()
             self.missingBytesToAll.setText("Copier à tous")
@@ -828,6 +832,7 @@ class RawWindow(QMainWindow):
                                 ("rgb", "couleur (RGB)")]
             for i in self.mode_values:
                 self.mode.addItem(i[1])
+            self.mode.currentIndexChanged.connect(self.onUpdateMode)
             gridImagePanel.addWidget(self.mode, 0, 1, 1, 4)
             self.modeToAll = QPushButton()
             self.modeToAll.setText("Copier à tous")
@@ -841,8 +846,10 @@ class RawWindow(QMainWindow):
                                         ("width", "largeur")]
             for i in self.sizeMode_values:
                 self.sizeMode.addItem(i[1])
+            self.sizeMode.currentIndexChanged.connect(self.onUpdateSizeMode)
             gridImagePanel.addWidget(self.sizeMode, 1, 1, 1, 2)
             self.sizeValue = QLineEdit()
+            self.sizeValue.editingFinished.connect(self.onUpdateSizeValue)
             gridImagePanel.addWidget(self.sizeValue, 1, 3, 1, 2)
             self.sizeModeToAll = QPushButton()
             self.sizeModeToAll.setText("Copier à tous")
@@ -862,6 +869,7 @@ class RawWindow(QMainWindow):
                                     (48000, "48 kHz")]
             for i in self.bitrate_values:
                 self.bitrate.addItem(i[1])
+            self.bitrate.currentIndexChanged.connect(self.onUpdateBitrate)
             gridAudioPanel.addWidget(self.bitrate, 0, 1, 1, 4)
             self.bitrateToAll = QPushButton()
             self.bitrateToAll.setText("Copier à tous")
@@ -875,6 +883,7 @@ class RawWindow(QMainWindow):
                                     ("stereo", "Stéréo")]
             for i in self.channels_values:
                 self.channels.addItem(i[1])
+            self.channels.currentIndexChanged.connect(self.onUpdateChannels)
             gridAudioPanel.addWidget(self.channels, 1, 1, 1, 4)
             self.channelsToAll = QPushButton()
             self.channelsToAll.setText("Copier à tous")
@@ -883,7 +892,7 @@ class RawWindow(QMainWindow):
             self.detailsText = QLabel()
             self.vbox.addWidget(self.detailsText)
 
-            # TODO: connect widgets to update self.unput
+            # TODO: connect widgets to update self.input and all other inputs
 
             self.setCurrent(None)
 
@@ -921,10 +930,47 @@ class RawWindow(QMainWindow):
                     self.sizeMode.setCurrentIndex(self.getIndexFromList(self.current.get_size_mode(), self.sizeMode_values))
                     if self.current.get_size_mode() == "width":
                         self.sizeValue.setText(str(self.current.get_width_size()))
+                        self.sizeValue.setValidator(QIntValidator(1, 100000, self))
+
                     else:
                         self.sizeValue.setText(str(self.current.get_ratio_size()))
+                        self.sizeValue.setValidator(QDoubleValidator(0, 100, 0, self))
                 
+        @pyqtSlot()
+        def onOutputExplorerClicked(self):
+            print("To be implemented")
+            
+        @pyqtSlot()
+        def onUpdateOutputFile(self):
+            print("To be implemented")
+        
+        @pyqtSlot()
+        def onUpdateMissingBytes(self):
+            print("To be implemented")
 
+        @pyqtSlot()
+        def onUpdateConversion(self):
+            print("To be implemented")
+
+        @pyqtSlot()
+        def onUpdateBitrate(self):
+            print("To be implemented")
+
+        @pyqtSlot()
+        def onUpdateChannels(self):
+            print("To be implemented")
+
+        @pyqtSlot()
+        def onUpdateMode(self):
+            print("To be implemented")
+
+        @pyqtSlot()
+        def onUpdateSizeMode(self):
+            print("To be implemented")
+
+        @pyqtSlot()
+        def onUpdateSizeValue(self):
+            print("To be implemented")
 
     def __init__(self, args, parent = None):
         super(RawWindow, self).__init__(parent)
