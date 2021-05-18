@@ -33,6 +33,19 @@ class Utils:
         else:
             return Utils.audio_description(obj)
 
+    def conversion_method(args):
+        if args.conversion_inverse_a_law:
+            return "inverse a-law"
+        elif args.conversion_a_law:
+            return "a-law"
+        elif args.conversion_inverse_u_law:
+            return "inverse u-law"
+        elif args.conversion_u_law:
+            return "u-law"
+        else:
+            return "linear"
+
+
 
 class Parameters:
     # A class to manage parameters
@@ -46,9 +59,11 @@ class Parameters:
         group_command_line.add_argument("--ignore-history", help="Ignore history and avoid parameter guessing", action="store_true")
 
         group_conversion = group_command_line.add_mutually_exclusive_group(required=False)
-        group_conversion.add_argument("--conversion-basic", help="Use a basic 8-bits conversion", action="store_true")
+        group_conversion.add_argument("--conversion-linear", help="Use a linear 8-bits conversion", action="store_true")
         group_conversion.add_argument("--conversion-u-law", help="Use the u-law algorithm within an 8-bits conversion", action="store_true")
         group_conversion.add_argument("--conversion-a-law", help="Use the a-law algorithm within an 8-bits conversion", action="store_true")
+        group_conversion.add_argument("--conversion-inverse-u-law", help="Use the inverse u-law algorithm within an 8-bits conversion", action="store_true")
+        group_conversion.add_argument("--conversion-inverse-a-law", help="Use the inverse a-law algorithm within an 8-bits conversion", action="store_true")
 
         group_extra_bytes = group_command_line.add_mutually_exclusive_group(required=False)
         group_extra_bytes.add_argument("-t", "--truncate", help="Truncate data rather than adding empty elements", action="store_true")
@@ -86,6 +101,8 @@ class Parameters:
     def has_extra_bytes_method(args):
         return args.truncate or args.add_extra_bytes
 
+    def has_conversion_method(args):
+        return args.conversion_a_law or args.conversion_inverse_a_law or args.conversion_u_law or args.conversion_inverse_u_law or args.conversion_linear
 
 
 
@@ -170,14 +187,29 @@ class History:
         self.store_history(history)
 
 
-    def  consolidate_extra_bytes_method(self, args, data):
+    def consolidate_extra_bytes_method(args, data):
         if not Parameters.has_extra_bytes_method(args):
             if data == None or args.ignore_history:
                 args.add_extra_bytes = True
             else:
                 args.truncate = (data["from_image"] and data["i_size"] >= data["a_size"]) or ((not data["from_image"]) and data["i_size"] <= data["a_size"])
                 args.add_extra_bytes = not args.truncate
-
+    
+    def consolidate_conversion_method(args, data):
+        if not Parameters.has_conversion_method(args):
+            if data == None or args.ignore_history:
+                args.conversion_linear = True
+                args.conversion_u_law = False
+                args.conversion_inverse_u_law = False
+                args.conversion_a_law = False
+                args.conversion_inverse_a_law = False
+            else:
+                # inverse previous conversion
+                args.conversion_linear = data["conversion_method"] == "linear"
+                args.conversion_u_law = data["conversion_method"] == "inverse u-law"
+                args.conversion_inverse_u_law = data["conversion_method"] == "u-law"
+                args.conversion_a_law = data["conversion_method"] == "inverse a-law"
+                args.conversion_inverse_a_law = data["conversion_method"] == "a-law"
 
     def consolidate_parameters_from_image(self, args, im):
         # consolidate args
@@ -198,7 +230,8 @@ class History:
         if args.bitrate == None:
             args.bitrate = 44100
         
-        self.consolidate_extra_bytes_method(args, data)
+        History.consolidate_extra_bytes_method(args, data)
+        History.consolidate_conversion_method(args, data)
 
 
     def consolidate_parameters_from_audio(self, args, au):
@@ -219,11 +252,12 @@ class History:
         if not Parameters.has_image_mode_parameter(args):
             args.rgb = True
 
-        self.consolidate_extra_bytes_method(args, data)
+        History.consolidate_extra_bytes_method(args, data)
+        History.consolidate_conversion_method(args, data)
 
-    def store_parameters(self, au, im, from_image):
+    def store_parameters(self, au, im, from_image, conversion_method):
         # store configuration
-        new_data = {"from_image": from_image}
+        new_data = {"from_image": from_image, "conversion_method": conversion_method }
         new_data.update(Utils.image_description(im))
         new_data.update(Utils.audio_description(au))
         self.store_params_to_history(new_data)
@@ -317,15 +351,8 @@ class Rawdodendron:
             print("")
             
         # apply a byte-to-byte conversion if required
-        if args.conversion_u_law:
-            if args.verbose:
-                print("Conversion using u-law")
-            data = audioop.lin2ulaw(data, 1)
-        elif args.conversion_a_law:
-            if args.verbose:
-                print("Conversion using a-law")
-            data = audioop.lin2alaw(data, 1)
-
+        data = Rawdodendron.apply_conversion(data, args)
+    
         # handle extra bytes (truncate or add missing data)
         if len(data) % (channels) != 0:
             if args.truncate:
@@ -365,7 +392,7 @@ class Rawdodendron:
         file_handle = au.export(args.output.name, format=format)
 
         # store input and output properties in the history
-        history.store_parameters(au, im, True)
+        history.store_parameters(au, im, True, Utils.conversion_method(args))
 
     # get the image size from the parameters
     def get_image_size(data, args):
@@ -399,6 +426,25 @@ class Rawdodendron:
         return width, height, missing
 
 
+    def apply_conversion(data, args):
+        if args.conversion_u_law:
+            if args.verbose:
+                print("Conversion using u-law")
+            data = audioop.lin2ulaw(data, 1)
+        elif args.conversion_a_law:
+            if args.verbose:
+                print("Conversion using a-law")
+            data = audioop.lin2alaw(data, 1)
+        elif args.conversion_inverse_u_law:
+            if args.verbose:
+                print("Conversion using inverse u-law")
+            data = audioop.ulaw2lin(data, 1)
+        elif args.conversion_inverse_a_law:
+            if args.verbose:
+                print("Conversion using inverse a-law")
+            data = audioop.alaw2lin(data, 1)
+        return data
+
     def save_as_image(au, args):
 
         # convert to 8-bits
@@ -415,14 +461,7 @@ class Rawdodendron:
             print("")
 
         # apply a byte-to-byte conversion if required
-        if args.conversion_u_law:
-            if args.verbose:
-                print("Conversion using u-law")
-            data = audioop.ulaw2lin(data, 1)
-        elif args.conversion_a_law:
-            if args.verbose:
-                print("Conversion using a-law")
-            data = audioop.alaw2lin(data, 1)
+        data = Rawdodendron.apply_conversion(data, args)
 
         # compute image size
         width, height, missing = Rawdodendron.get_image_size(data, args)
@@ -453,7 +492,7 @@ class Rawdodendron:
             # try to save the image
             im.save(args.output.name)
             # finaly, store the configuration in the history logs
-            history.store_parameters(au, im, False)
+            history.store_parameters(au, im, False, Utils.conversion_method(args))
         except Exception as err:
             # if an exception occured, the selected format may not support alpha channels (e.g. jpg)
             if mode == "RGBA":
@@ -466,7 +505,7 @@ class Rawdodendron:
                 im.save(args.output.name)
 
                 # finaly, store the configuration in the history logs
-                history.store_parameters(au, im, False)
+                history.store_parameters(au, im, False, Utils.conversion_method(args))
             else:
                 print("\nError:", err, "\n")
                 exit(2)
@@ -710,7 +749,9 @@ class RawWindow(QMainWindow):
             self.conversion = QComboBox()
             self.conversion.addItem("linéaire")
             self.conversion.addItem("u-law")
+            self.conversion.addItem("u-law inverse")
             self.conversion.addItem("a-law")
+            self.conversion.addItem("a-law inverse")
             gridCommonPanel.addWidget(self.conversion, 2, 1, 1, 4)
             self.conversionToAll = QPushButton()
             self.conversionToAll.setText("Copier à tous")
