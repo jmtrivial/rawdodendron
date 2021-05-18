@@ -937,6 +937,8 @@ class RawWindow(QMainWindow):
             print("Error: no corresponding entry:", value, l)
             return 0
 
+        def fullUpdateUI(self):
+            self.setCurrent(self.current)
 
         def updateUI(self):
             if self.current != None:
@@ -1100,6 +1102,9 @@ class RawWindow(QMainWindow):
         # update list
         if self.invertConversion.isChecked():
             self.inputs_widget.updateWidgets()
+
+        # update panel
+        self.edit_panel.fullUpdateUI()
 
     def setNbElements(self, nb = 0):
         self.processButton.setEnabled(nb != 0)
