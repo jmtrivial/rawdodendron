@@ -1217,6 +1217,18 @@ class RawWindow(QMainWindow):
         for f in files:
             self.addInputFile(f)
 
+    def closeEvent(self, event):
+        if self.nbElements != 0:
+            reply = QMessageBox.question(self, "Vraiment quitter?", "La liste n'est pas vide. Voulez-vous vraiment quitter?")
+            if reply == QMessageBox.Yes:
+                event.accept() # let the window close
+            else:
+                event.ignore()
+        else:
+            event.accept() # let the window close
+
+
+
     def addInputFile(self, filename):
         input = RawWindow.Input(filename, args)
         if input.is_valid:
