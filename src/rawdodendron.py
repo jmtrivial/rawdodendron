@@ -584,8 +584,14 @@ class RawWindow(QMainWindow):
         def get_ratio_size(self):
             return self.args.ratio
 
+        def set_ratio_value(self, value):
+            self.args.ratio = float(value)
+
         def get_width_size(self):
             return self.args.width
+
+        def set_width_value(self, value):
+            self.args.width = int(value)
 
         def get_size_mode(self):
             if self.args.width:
@@ -1011,8 +1017,10 @@ class RawWindow(QMainWindow):
 
         @pyqtSlot()
         def onUpdateSizeValue(self):
-            # TODO
-            print("To be implemented")
+            if self.current.get_size_mode() == "width":
+                self.current.set_width_value(self.sizeValue.text())
+            else:
+                self.current.set_ratio_value(self.sizeValue.text())
 
     def __init__(self, args, parent = None):
         super(RawWindow, self).__init__(parent)
