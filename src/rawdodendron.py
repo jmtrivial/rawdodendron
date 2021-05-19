@@ -1074,6 +1074,7 @@ class RawWindow(QMainWindow):
         self.status_bar = QStatusBar()
         self.setStatusBar(self.status_bar)
 
+        self.nbElements = 0
 
         # if args.input is set, add the input file
         if args.input != None:
@@ -1156,6 +1157,7 @@ class RawWindow(QMainWindow):
 
 
     def setNbElements(self, nb = 0):
+        self.nbElements = nb
         self.processButton.setEnabled(nb != 0)
 
     def showMessage(self, msg):
@@ -1180,7 +1182,12 @@ class RawWindow(QMainWindow):
         if (q.text() == "Ouvrir..."):
             self.on_add_input()
         if q.text() == "Quitter":
-            sys.exit()
+            if self.nbElements != 0:
+                reply = QMessageBox.question(self, "Vraiment quitter?", "La liste n'est pas vide. Voulez-vous vraiment quitter?")
+                if reply == QMessageBox.Yes:
+                    sys.exit()
+            else:
+                sys.exit()
                 
 
 if __name__ == '__main__':
