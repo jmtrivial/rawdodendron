@@ -658,6 +658,9 @@ class RawWindow(QMainWindow):
         def getFileName(self):
             return os.path.basename(self.filename)
 
+        def set_output_file(self, filename):
+            self.args.output.name = filename
+
         def inverse(self):
             self.filename = self.args.output.name
             self.args.output = None
@@ -965,13 +968,21 @@ class RawWindow(QMainWindow):
                 
         @pyqtSlot()
         def onOutputExplorerClicked(self):
-            # TODO
-            print("To be implemented")
+            options = QFileDialog.Options()
+            if self.current.is_image:
+                filename, _ = QFileDialog.getSaveFileName(self,"Convertir l'image en audio", self.outputFilename.text(),
+                            "Sons (*.wav *.ogg *.mp3 *.flac);; Tous les fichiers (*.*)", options=options)
+                if filename != "":
+                    self.outputFilename.setText(filename)
+            else:
+                filename, _ = QFileDialog.getSaveFileName(self,"Convertir l'image en audio", self.outputFilename.text(),
+                            "Images (*.png *.jpg *.bmp);; Tous les fichiers (*.*)", options=options)
+                if filename != "":
+                    self.outputFilename.setText(filename)
             
         @pyqtSlot()
         def onUpdateOutputFile(self):
-            # TODO
-            print("To be implemented")
+            self.current.set_output_file(self.outputFilename.text())
         
         @pyqtSlot()
         def onUpdateMissingBytes(self):
