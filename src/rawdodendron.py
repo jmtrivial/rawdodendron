@@ -336,11 +336,12 @@ class Rawdodendron:
             exit(1)
 
 
-    def save_as_audio(im, args):
+    def save_as_audio(im, args, use_history = True):
 
         # consolidate parameters using history
-        history = History()
-        history.consolidate_parameters_from_image(args, im)
+        if use_history:
+            history = History()
+            history.consolidate_parameters_from_image(args, im)
 
         # get data
         data = im.tobytes()
@@ -392,6 +393,7 @@ class Rawdodendron:
         file_handle = au.export(args.output.name, format=format)
 
         # store input and output properties in the history
+        history = History()
         history.store_parameters(au, im, True, Utils.conversion_method(args))
 
     # get the image size from the parameters
@@ -445,14 +447,15 @@ class Rawdodendron:
             data = audioop.alaw2lin(data, 1)
         return data
 
-    def save_as_image(au, args):
+    def save_as_image(au, args, use_history = True):
 
         # convert to 8-bits
         au = au.set_sample_width(1)
 
         # load history
-        history = History()
-        history.consolidate_parameters_from_audio(args, au)
+        if use_history:
+            history = History()
+            history.consolidate_parameters_from_audio(args, au)
 
         # get data from the audio
         data = au.raw_data
@@ -492,6 +495,7 @@ class Rawdodendron:
             # try to save the image
             im.save(args.output.name)
             # finaly, store the configuration in the history logs
+            history = History()
             history.store_parameters(au, im, False, Utils.conversion_method(args))
         except Exception as err:
             # if an exception occured, the selected format may not support alpha channels (e.g. jpg)
@@ -505,6 +509,7 @@ class Rawdodendron:
                 im.save(args.output.name)
 
                 # finaly, store the configuration in the history logs
+                history = History()
                 history.store_parameters(au, im, False, Utils.conversion_method(args))
             else:
                 print("\nError:", err, "\n")
@@ -535,6 +540,7 @@ class RawWindow(QMainWindow):
                 while os.path.exists(self.name):
                     i += 1
                     self.name = parent + "/" + stem + " (" + str(i) + ")" + extension
+                print(self.name)
 
         def __init__(self, filename, args):
             self.filename = filename
@@ -637,7 +643,8 @@ class RawWindow(QMainWindow):
         def set_size_mode(self, mode):            
             self.args.ratio = self.width / self.height if mode == "ratio" else None
             self.args.width = self.width if mode == "width" else None
-
+            self.update_size()
+            
         def get_pixel_mode(self):
             if self.args.greyscale:
                 return "greyscale"
@@ -645,22 +652,29 @@ class RawWindow(QMainWindow):
                 return "rgba"
             else:
                 return "rgb"
+
+
         
         def set_pixel_mode(self, mode):
-            self.args.grayscale = mode == "greyscale"
-            self.args.rgb = "rgb"
-            self.args.rgba = "rgba"
+            self.args.greyscale = mode == "greyscale"
+            self.args.rgb = mode == "rgb"
+            self.args.rgba = mode == "rgba"
+            self.update_size()
 
         # reload the input file and identify if it changed or not
         def file_properties_changed(self):
-            new_input_file = Rawdodendron.load_input_file(self.filename, self.args.verbose)
-            self.update_size()
-            desc = Utils.description(self.input_file)
-            new_desc = Utils.description(new_input_file)
-            if desc == new_desc:
-                self.input_file = new_input_file
-                return False
-            else:
+            try:
+                new_input_file = Rawdodendron.load_input_file(self.filename, self.args.verbose)
+            
+                self.update_size()
+                desc = Utils.description(self.input_file)
+                new_desc = Utils.description(new_input_file)
+                if desc == new_desc:
+                    self.input_file = new_input_file
+                    return False
+                else:
+                    return True
+            except:
                 return True
 
         def get_data(self):
@@ -1008,8 +1022,6 @@ class RawWindow(QMainWindow):
             self.detailsText = QLabel()
             self.vbox.addWidget(self.detailsText)
 
-            # TODO: connect widgets to update self.input and all other inputs
-
             self.setCurrent(None)
 
         def setCurrent(self, input):
@@ -1052,7 +1064,6 @@ class RawWindow(QMainWindow):
             if self.current.get_size_mode() == "width":
                 self.sizeValue.setText(str(self.current.get_width_size()))
                 self.sizeValue.setValidator(QIntValidator(1, 100000, self))
-
             else:
                 self.sizeValue.setText(str(self.current.get_ratio_size()).replace(".", ","))
                 self.sizeValue.setValidator(QDoubleValidator(0, 100, 4, self))
@@ -1249,19 +1260,19 @@ class RawWindow(QMainWindow):
 
         for i, input in enumerate(inputs):
             self.progressBar.setValue(i + 1)
-            args = copy(input.args)
-            args.ignore_history = True
+            print(input.args)
+            print(input.args.output.name)
             if input.file_properties_changed():
                 error_dialog.showMessage("Le fichier " + input.filename + " a changé de propriétés depuis son chargement, il sera ignoré")
                 self.status_bar.showMessage("Le fichier " + input.filename + " a changé depuis son chargement", 2000)
             else:
-                self.status_bar.showMessage("Export vers " + args.output.name, 2000)
+                self.status_bar.showMessage("Export vers " + input.args.output.name, 2000)
                 if input.is_image:
-                    print("Convert", input.filename, "to", args.output.name)
-                    Rawdodendron.save_as_audio(input.input_file, args)
+                    print("Convert", input.filename, "to", input.args.output.name)
+                    Rawdodendron.save_as_audio(input.input_file, input.args, False)
                 else:
-                    print("Convert", input.filename, "to", args.output.name)
-                    Rawdodendron.save_as_image(input.input_file, args)
+                    print("Convert", input.filename, "to", input.args.output.name)
+                    Rawdodendron.save_as_image(input.input_file, input.args, False)
                 # if required, inverse the conversion list
                 if self.invertConversion.isChecked():
                     input.inverse()
