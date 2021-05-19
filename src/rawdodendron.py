@@ -545,6 +545,39 @@ class RawWindow(QMainWindow):
 
             self.load_input_file()
 
+        def set_parameter(self, key, value):
+            if key == "conversion":
+                self.set_conversion_method(value)
+                return True
+            elif key == "missing-bytes":
+                self.set_missing_bytes_method(value)
+                return True
+            elif key == "pixel-mode":
+                if not self.is_image:
+                    self.set_pixel_mode(value)
+                    return True
+            elif key == "ratio":
+                if not self.is_image:
+                    self.set_size_mode("ratio")
+                    self.set_ratio_value(value)
+                    return True
+            elif key == "width":
+                if not self.is_image:
+                    self.set_size_mode("width")
+                    self.set_width_value(value)
+                    return True
+            elif key == "bitrate":
+                if self.is_image:
+                    self.set_bitrate(value)
+                    return True
+            elif key == "channels":
+                if self.is_image:
+                    self.set_channels(value)
+                    return True
+
+            return False
+            
+
         def get_missing_bytes_method(self):
             if self.args.truncate:
                 return "truncate"
@@ -822,9 +855,10 @@ class RawWindow(QMainWindow):
             self.list.setFocus()
 
     class EditPanel(QWidget):    
-        def __init__(self, parent = None):
+        def __init__(self, parent = None, rawWindow = None):
             super(QWidget, self).__init__(parent)
             self.current = None
+            self.rawWindow = rawWindow
             self.vbox = QVBoxLayout()
             self.setLayout(self.vbox)
 
@@ -872,6 +906,7 @@ class RawWindow(QMainWindow):
             gridCommonPanel.addWidget(self.conversion, 2, 1, 1, 4)
             self.conversionToAll = QPushButton()
             self.conversionToAll.setText("Copier à tous")
+            self.conversionToAll.clicked.connect(lambda x: rawWindow.on_set_parameter_to_all("conversion", self.current.get_conversion_method(), self.current.id))
             gridCommonPanel.addWidget(self.conversionToAll, 2, 5, 1, 2)
 
             title = QLabel()
@@ -886,6 +921,7 @@ class RawWindow(QMainWindow):
             gridCommonPanel.addWidget(self.missingBytes, 3, 1, 1, 4)
             self.missingBytesToAll = QPushButton()
             self.missingBytesToAll.setText("Copier à tous")
+            self.missingBytesToAll.clicked.connect(lambda x: rawWindow.on_set_parameter_to_all("missing-bytes", self.current.get_missing_bytes_method(), self.current.id))
             gridCommonPanel.addWidget(self.missingBytesToAll, 3, 5, 1, 2)
 
 
@@ -909,6 +945,7 @@ class RawWindow(QMainWindow):
             gridImagePanel.addWidget(self.mode, 0, 1, 1, 4)
             self.modeToAll = QPushButton()
             self.modeToAll.setText("Copier à tous")
+            self.modeToAll.clicked.connect(lambda x: rawWindow.on_set_parameter_to_all("pixel-mode", self.current.get_pixel_mode(), self.current.id))
             gridImagePanel.addWidget(self.modeToAll, 0, 5, 1, 2)
 
             title = QLabel()
@@ -926,6 +963,10 @@ class RawWindow(QMainWindow):
             gridImagePanel.addWidget(self.sizeValue, 1, 3, 1, 2)
             self.sizeModeToAll = QPushButton()
             self.sizeModeToAll.setText("Copier à tous")
+            if self.sizeMode_values[self.sizeMode.currentIndex()][0] == "ratio":
+                self.sizeModeToAll.clicked.connect(lambda x: rawWindow.on_set_parameter_to_all("ratio", self.current.get_ratio_size(), self.current.id))
+            else:
+                self.sizeModeToAll.clicked.connect(lambda x: rawWindow.on_set_parameter_to_all("width", self.current.get_width_size(), self.current.id))
             gridImagePanel.addWidget(self.sizeModeToAll, 1, 5, 1, 2)
 
             # create the audio panel
@@ -946,6 +987,7 @@ class RawWindow(QMainWindow):
             gridAudioPanel.addWidget(self.bitrate, 0, 1, 1, 4)
             self.bitrateToAll = QPushButton()
             self.bitrateToAll.setText("Copier à tous")
+            self.bitrateToAll.clicked.connect(lambda x: rawWindow.on_set_parameter_to_all("bitrate", self.current.get_bitrate(), self.current.id))
             gridAudioPanel.addWidget(self.bitrateToAll, 0, 5, 1, 2)
 
             title = QLabel()
@@ -960,6 +1002,7 @@ class RawWindow(QMainWindow):
             gridAudioPanel.addWidget(self.channels, 1, 1, 1, 4)
             self.channelsToAll = QPushButton()
             self.channelsToAll.setText("Copier à tous")
+            self.channelsToAll.clicked.connect(lambda x: rawWindow.on_set_parameter_to_all("channels", self.current.get_channels(), self.current.id))
             gridAudioPanel.addWidget(self.channelsToAll, 1, 5, 1, 2)
 
             self.detailsText = QLabel()
@@ -975,7 +1018,6 @@ class RawWindow(QMainWindow):
             self.commonPanel.setVisible(input != None)
             self.imagePanel.setVisible(input != None and not input.is_image)
             self.audioPanel.setVisible(input != None and input.is_image)
-            
             
             # update widget contents
             self.updateUI()
@@ -1116,7 +1158,7 @@ class RawWindow(QMainWindow):
         self.splitter.addWidget(self.inputs_widget)
 
         # create the edit panel and add it tot the splitter
-        self.edit_panel = RawWindow.EditPanel()
+        self.edit_panel = RawWindow.EditPanel(rawWindow = self)
         self.splitter.addWidget(self.edit_panel)
 
         self.bottom_bar = QWidget()
@@ -1175,6 +1217,15 @@ class RawWindow(QMainWindow):
             self.error_dialog.showMessage("Le fichier " + filename + " n'est pas lisible par Rawdodendron.")
             self.status_bar.showMessage(filename + ": format inconnu", 2000)
 
+    @pyqtSlot()
+    def on_set_parameter_to_all(self, key, value, currentID):
+        inputs = self.inputs_widget.getInputs()
+        nb = 0
+        for input in inputs:
+            if input.id != currentID:
+                if input.set_parameter(key, value):
+                    nb += 1
+        self.status_bar.showMessage("Réglage propagé à " + str(nb) + " entrées", 2000)
     
     @pyqtSlot()
     def process_inputs(self):
