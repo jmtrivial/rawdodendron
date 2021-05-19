@@ -754,12 +754,14 @@ class RawWindow(QMainWindow):
             self.list.clear()
             self.list.setFocus()
             self.rawWindow.setNbElements(self.list.count())
+            self.rawWindow.showMessage("Liste vidée")
 
         @pyqtSlot()
         def on_delete_input(self, input, e):
             for r in range(self.list.count()):
                 row = self.list.item(r)
                 if row.input.id == input.id:
+                    self.rawWindow.showMessage("Fichier " + input.filename + " retiré de la liste des entrées")
                     self.list.takeItem(r)
                     self.list.setFocus()
                     break
@@ -1056,6 +1058,12 @@ class RawWindow(QMainWindow):
 
         self.inputs_widget.setFocus()
 
+        self.error_dialog = QErrorMessage(self)
+
+        self.status_bar = QStatusBar()
+        self.setStatusBar(self.status_bar)
+
+
         # if args.input is set, add the input file
         if args.input != None:
             self.addInputFile(args.input.name)
@@ -1076,10 +1084,11 @@ class RawWindow(QMainWindow):
         if input.is_valid:
             print("Loading input file:", filename)
             self.inputs_widget.addInput(input)
+            self.status_bar.showMessage(filename + " importé avec succès", 2000)
         else:
             print("Error while loading", filename)
-            error_dialog = QErrorMessage(self)
-            error_dialog.showMessage("Le fichier que vous avez sélectionné n'est pas lisible par Rawdodendron.")
+            self.error_dialog.showMessage("Le fichier " + filename + " n'est pas lisible par Rawdodendron.")
+            self.status_bar.showMessage(filename + ": format inconnu", 2000)
 
     
     @pyqtSlot()
@@ -1094,15 +1103,18 @@ class RawWindow(QMainWindow):
         self.inputs_widget.setEnabled(False)
         self.edit_panel.setEnabled(False)
         self.invertConversion.setEnabled(False)
+        
+        error_dialog = QErrorMessage(self)
 
         for i, input in enumerate(inputs):
             self.progressBar.setValue(i + 1)
             args = copy(input.args)
             args.ignore_history = True
             if input.file_properties_changed():
-                error_dialog = QErrorMessage(self)
                 error_dialog.showMessage("Le fichier " + input.filename + " a changé de propriétés depuis son chargement, il sera ignoré")
+                self.status_bar.showMessage("Le fichier " + input.filename + " a changé depuis son chargement", 2000)
             else:
+                self.status_bar.showMessage("Export vers " + args.output.name, 2000)
                 if input.is_image:
                     print("Convert", input.filename, "to", args.output.name)
                     Rawdodendron.save_as_audio(input.input_file, args)
@@ -1129,10 +1141,14 @@ class RawWindow(QMainWindow):
         self.invertConversion.setEnabled(True)
         self.processButton.setVisible(True)
         self.progressBar.setVisible(False)
+        self.status_bar.showMessage("Conversions réalisées avec succès", 2000)
 
 
     def setNbElements(self, nb = 0):
         self.processButton.setEnabled(nb != 0)
+
+    def showMessage(self, msg):
+        self.status_bar.showMessage(msg, 2000)
 
     @pyqtSlot()
     def on_active_input(self, input, e):
