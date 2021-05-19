@@ -62,6 +62,12 @@ Right clic on an audio file and find the *rawdodendron* entry to convert it to a
 
 ## Examples
 
+### Using image processing algorithms on audio
+
+[![Extrait d'une vidéo de démonstration de Rawdodendron](https://img.youtube.com/vi/e5jLRHVnhWw/0.jpg)](https://www.youtube.com/watch?v=e5jLRHVnhWw)
+
+### Using audio processing algorithms on images
+
 Some images generated from an RGBA png version of the initial *rhododendron* image, using the following process:
 
 * convert the image to an audio file
