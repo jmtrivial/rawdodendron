@@ -248,7 +248,7 @@ class History:
 
         # set default values
         if not Parameters.has_image_size_parameter(args):
-            args.ratio = 3/2 # default ratio value
+            args.ratio = 1.0 # default ratio value
         if not Parameters.has_image_mode_parameter(args):
             args.rgb = True
 
@@ -618,7 +618,7 @@ class RawWindow(QMainWindow):
             return self.args.ratio
 
         def set_ratio_value(self, value):
-            self.args.ratio = float(value)
+            self.args.ratio = float(value.replace(",", "."))
             self.update_size()
 
         def get_width_size(self):
@@ -1054,8 +1054,8 @@ class RawWindow(QMainWindow):
                 self.sizeValue.setValidator(QIntValidator(1, 100000, self))
 
             else:
-                self.sizeValue.setText(str(self.current.get_ratio_size()))
-                self.sizeValue.setValidator(QDoubleValidator(0, 100, 0, self))
+                self.sizeValue.setText(str(self.current.get_ratio_size()).replace(".", ","))
+                self.sizeValue.setValidator(QDoubleValidator(0, 100, 4, self))
 
         def set_detailsText(self):
             if self.current != None:
@@ -1225,7 +1225,12 @@ class RawWindow(QMainWindow):
             if input.id != currentID:
                 if input.set_parameter(key, value):
                     nb += 1
-        self.status_bar.showMessage("Réglage propagé à " + str(nb) + " entrées", 2000)
+        if nb > 1:
+            self.status_bar.showMessage("Réglage propagé à " + str(nb) + " entrées", 2000)
+        elif nb == 1:
+            self.status_bar.showMessage("Réglage propagé à 1 entrée", 2000)
+        else:
+            self.status_bar.showMessage("Aucune entrée modifiée", 2000)
     
     @pyqtSlot()
     def process_inputs(self):
