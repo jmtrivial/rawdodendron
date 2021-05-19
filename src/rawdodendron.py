@@ -586,18 +586,24 @@ class RawWindow(QMainWindow):
 
         def set_ratio_value(self, value):
             self.args.ratio = float(value)
+            self.update_size()
 
         def get_width_size(self):
             return self.args.width
 
         def set_width_value(self, value):
             self.args.width = int(value)
+            self.update_size()
 
         def get_size_mode(self):
             if self.args.width:
                 return "width"
             else:
                 return "ratio"
+        
+        def set_size_mode(self, mode):            
+            self.args.ratio = self.width / self.height if mode == "ratio" else None
+            self.args.width = self.width if mode == "width" else None
 
         def get_pixel_mode(self):
             if self.args.greyscale:
@@ -615,6 +621,7 @@ class RawWindow(QMainWindow):
         # reload the input file and identify if it changed or not
         def file_properties_changed(self):
             new_input_file = Rawdodendron.load_input_file(self.filename, self.args.verbose)
+            self.update_size()
             desc = Utils.description(self.input_file)
             new_desc = Utils.description(new_input_file)
             if desc == new_desc:
@@ -622,6 +629,27 @@ class RawWindow(QMainWindow):
                 return False
             else:
                 return True
+
+        def get_data(self):
+            if self.is_image:
+                return self.input_file.tobytes()
+            else:
+                return self.input_file.raw_data
+
+        def update_size(self):
+            if self.is_image:
+                self.width = None
+                self.heigh = None
+                self.missing = None
+                self.final_size = len(self.input_file.tobytes())
+                if self.final_size % (2 if self.get_channels() == "stero" else 1) != 0:
+                    if self.args.truncate:
+                        self.final_size -= 1
+                    else:
+                        self.final_size += 1
+            else:
+                self.width, self.height, self.missing = Rawdodendron.get_image_size(self.get_data(), self.args)
+                self.final_size = len(self.input_file.raw_data) + self.missing
 
         def load_input_file(self):
             self.is_valid = False
@@ -635,6 +663,7 @@ class RawWindow(QMainWindow):
                             print("Loading image:", self.filename)
                         self.is_image = True
                         RawWindow.history.consolidate_parameters_from_image(self.args, self.input_file)
+                        self.update_size()
                         # set output name
                         self.computeNextPossibleOutputName()
                     elif isinstance(self.input_file, AudioSegment):
@@ -642,6 +671,7 @@ class RawWindow(QMainWindow):
                             print("Loading audio:", self.filename)
                         self.is_image = False
                         RawWindow.history.consolidate_parameters_from_audio(self.args, self.input_file)
+                        self.update_size()
                         # set output name
                         self.computeNextPossibleOutputName()
                         
@@ -671,6 +701,15 @@ class RawWindow(QMainWindow):
             self.filename = self.args.output.name
             self.args.output = None
             self.load_input_file()
+
+        def get_size_info(self):
+            if self.is_image:
+                return self.final_size / self.args.bitrate
+            else:
+                return (self.width, self.height)
+                
+
+            
         
 
     class InputWidget(QWidget):
@@ -964,14 +1003,33 @@ class RawWindow(QMainWindow):
                 else:
                     self.mode.setCurrentIndex(self.getIndexFromList(self.current.get_pixel_mode(), self.mode_values))
                     self.sizeMode.setCurrentIndex(self.getIndexFromList(self.current.get_size_mode(), self.sizeMode_values))
-                    if self.current.get_size_mode() == "width":
-                        self.sizeValue.setText(str(self.current.get_width_size()))
-                        self.sizeValue.setValidator(QIntValidator(1, 100000, self))
+                    self.update_sizeMode()
+            self.set_detailsText()
 
+        def update_sizeMode(self):
+            if self.current.get_size_mode() == "width":
+                self.sizeValue.setText(str(self.current.get_width_size()))
+                self.sizeValue.setValidator(QIntValidator(1, 100000, self))
+
+            else:
+                self.sizeValue.setText(str(self.current.get_ratio_size()))
+                self.sizeValue.setValidator(QDoubleValidator(0, 100, 0, self))
+
+        def set_detailsText(self):
+            if self.current != None:
+                sizes = self.current.get_size_info()
+                if self.current.is_image:
+                    if sizes > 60 * 3:
+                        self.detailsText.setText("Un fichier audio de {:.1f} minutes sera généré".format(sizes / 60))
+                    elif sizes > 60:
+                        self.detailsText.setText("Un fichier audio de {:.0f} secondes sera généré".format(sizes))
                     else:
-                        self.sizeValue.setText(str(self.current.get_ratio_size()))
-                        self.sizeValue.setValidator(QDoubleValidator(0, 100, 0, self))
-                
+                        self.detailsText.setText("Un fichier audio de {:.1f} secondes sera généré".format(sizes))
+                else:
+                    self.detailsText.setText("Une image de " + str(sizes[0]) + " par " + str(sizes[1]) + " pixels sera générée")
+            else:
+                self.detailsText.setText("")
+
         @pyqtSlot()
         def onOutputExplorerClicked(self):
             options = QFileDialog.Options()
@@ -993,27 +1051,33 @@ class RawWindow(QMainWindow):
         @pyqtSlot()
         def onUpdateMissingBytes(self):
             self.current.set_missing_bytes_method(self.missingBytes_values[self.missingBytes.currentIndex()][0])
+            self.set_detailsText()
 
         @pyqtSlot()
         def onUpdateConversion(self):
             self.current.set_conversion_method(self.conversion_values[self.conversion.currentIndex()][0])
+            self.set_detailsText()
 
         @pyqtSlot()
         def onUpdateBitrate(self):
             self.current.set_bitrate(self.bitrate_values[self.bitrate.currentIndex()][0])
+            self.set_detailsText()
 
         @pyqtSlot()
         def onUpdateChannels(self):
             self.current.set_channels(self.channels_values[self.channels.currentIndex()][0])
+            self.set_detailsText()
 
         @pyqtSlot()
         def onUpdateMode(self):
             self.current.set_pixel_mode(self.mode_values[self.mode.currentIndex()][0])
+            self.set_detailsText()
 
         @pyqtSlot()
         def onUpdateSizeMode(self):
-            # TODO
-            print("To be implemented")
+            self.current.set_size_mode(self.sizeMode_values[self.sizeMode.currentIndex()][0])
+            self.update_sizeMode()
+            self.set_detailsText()
 
         @pyqtSlot()
         def onUpdateSizeValue(self):
@@ -1021,6 +1085,7 @@ class RawWindow(QMainWindow):
                 self.current.set_width_value(self.sizeValue.text())
             else:
                 self.current.set_ratio_value(self.sizeValue.text())
+            self.set_detailsText()
 
     def __init__(self, args, parent = None):
         super(RawWindow, self).__init__(parent)
