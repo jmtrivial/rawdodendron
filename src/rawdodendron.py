@@ -1142,7 +1142,6 @@ class RawWindow(QMainWindow):
     def on_add_input(self):
         print("Opening files...")
         options = QFileDialog.Options()
-        options |= QFileDialog.DontUseNativeDialog
         files, _ = QFileDialog.getOpenFileNames(self,"Sélection d'images et fichiers son", "",
                             "Images (*.png *.jpg *.bmp);; Sons (*.wav *.ogg *.mp3 *.flac);; Tous les fichiers (*.*)", options=options)
         
