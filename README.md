@@ -64,6 +64,8 @@ Right clic on an audio file and find the *rawdodendron* entry to convert it to a
 
 ### Using image processing algorithms on audio
 
+Here is a link to a Youtube video illustrating the use of image processing algorithms on an audio file. Description is given in french.
+
 [![Extrait d'une vidéo de démonstration de Rawdodendron](https://img.youtube.com/vi/e5jLRHVnhWw/0.jpg)](https://www.youtube.com/watch?v=e5jLRHVnhWw)
 
 ### Using audio processing algorithms on images
