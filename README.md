@@ -12,6 +12,12 @@ Using this tool before and after using a [Raster Graphic Editor](https://en.wiki
 
 *This tool is inspired by Cécile Georges' artistic practices, and aims to extend the possibilities offered by digital bending.*
 
+## Raw conversion
+
+The raw conversion uses a byte to byte conversion, each audio sample being translated into a pixel. By consequence, we obtain a time wrapping, each audio sample being the neighbor of a sample from the past (and future). The size of the wrapping (in ms) depends on the audio bitrate and the width of the image.
+
+![Audio wrapping in an image](./images/wrapping.png)
+
 
 ## Dependancies
 
@@ -49,6 +55,12 @@ You can of course force properties using command line parameters:
 All the command line parameters are visibles using the following command:
 
 * ```rawdodendron.py -h```
+
+### Graphical interface
+
+A Qt5 interface is provided, in order to process a series of conversion, editing each of the available parameters for each input file.
+
+![graphic interface](./images/interface.png)
 
 ### Service menu on KDE
 
