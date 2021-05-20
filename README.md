@@ -16,8 +16,9 @@ Using this tool before and after using a [Raster Graphic Editor](https://en.wiki
 
 The raw conversion uses a byte to byte conversion, each audio sample being translated into a pixel. By consequence, we obtain a time wrapping, each audio sample being the neighbor of a sample from the past (and future). The size of the wrapping (in ms) depends on the audio bitrate and the width of the image.
 
-![Audio wrapping in an image](./images/wrapping.png)
+![Audio wrapping in an image. The image is defined line by line.](./images/wrapping.png)
 
+**Note:** stereo audio files and RGB/RGBA images are not described in this image, but it works in a similar way (each audio sample is a 2-bytes data, one per channel, and each pixel is a x-bytes data, one per color).
 
 ## Dependancies
 
@@ -58,7 +59,7 @@ All the command line parameters are visibles using the following command:
 
 ### Graphical interface
 
-A Qt5 interface is provided, in order to process a series of conversion, editing each of the available parameters for each input file.
+A Qt5 interface is provided (only available in french), in order to process a series of conversion, editing each of the available parameters for each input file.
 
 ![graphic interface](./images/interface.png)
 
