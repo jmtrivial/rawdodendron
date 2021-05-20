@@ -64,7 +64,7 @@ Right clic on an audio file and find the *rawdodendron* entry to convert it to a
 
 ### Using image processing algorithms on audio
 
-![Screenshot of a conversion processing from gimp to audacity](./images/image-to-audio.png)
+![Screenshot of a conversion processing from gimp to audacity](./images/image-2-audio.png)
 
 Here is a link to a Youtube video illustrating the use of image processing algorithms on an audio file. Description is given in french.
 
@@ -72,7 +72,7 @@ Here is a link to a Youtube video illustrating the use of image processing algor
 
 ### Using audio processing algorithms on images
 
-![Screenshot of a conversion processing from audacity to gimp](./images/audio-to-image.png)
+![Screenshot of a conversion processing from audacity to gimp](./images/audio-2-image.png)
 
 Some images generated from an RGBA png version of the initial *rhododendron* image, using the following process:
 
